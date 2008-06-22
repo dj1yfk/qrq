@@ -26,15 +26,14 @@ Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <ctype.h>
 #include <time.h> 
 #include <math.h>
-#include <sys/ioctl.h>
 #include <fcntl.h>
-#include <sys/soundcard.h>
 #include <unistd.h>
 #include <sys/stat.h>			/* mkdir */
 #include <sys/types.h>
+#include <errno.h>
 
 
-#define PI 3.1415926
+#define PI M_PI
 
 #define SILENCE 0		/* Waveforms for the tone generator */
 #define SINE 1
@@ -49,10 +48,18 @@ Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #  define VERSION "0.0.0"
 #endif
 
+#ifndef OPENAL
+#include "oss.h"
+#define write_audio(x, y, z) write(x, y, z)
+#define close_audio(x) close(x)
+typedef int AUDIO_HANDLE;
+#else
+#include "OpenAlImp.h"
+typedef void *AUDIO_HANDLE;
+#endif
 
 /* callsign array will be dynamically allocated */
 static char **calls;
-
 const static char *codetable[] = {
 ".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..",".---",
 "-.-",".-..","--","-.","---",".--.","--.-",".-.","...","-","..-","...-",
@@ -75,7 +82,7 @@ static int constanttone=0;              /* if 1 don't change the pitch */
 static int ctonefreq=800;               /* if constanttone=1 use this freq */
 
 
-static long samplerate=44100;
+long samplerate=44100;
 static long long_i;
 static int waveform = SINE;				/* waveform: (0 = none) */
 static char wavename[10]="Sine    ";	/* Name of the waveform */
@@ -86,7 +93,7 @@ static int ft;							/* falltime. to be calced in 'morse' */
 
 static short buffer[88200];
 
-static int dsp_fd;
+static AUDIO_HANDLE dsp_fd;
 
 static int display_toplist(WINDOW * win);
 static int calc_score (char * realcall, char * input, int speed, char * output);
@@ -98,7 +105,6 @@ static int read_config();
 static int save_config();
 static int tonegen(int freq, int length, int waveform);
 static void *morse(void * arg); 
-static int open_dsp (char * device); 
 static int readcall(WINDOW *win, int y, int x, char * call); 
 static void thread_fail (int j);
 static int check_toplist ();
@@ -110,18 +116,29 @@ pthread_t cwthread;				/* thread for CW output, to enable
 								   keyboard reading at the same time */
 pthread_attr_t cwattr;
 
-char rcfilename[80]="";			/* filename and path to qrqrc */
-char tlfilename[80]="";			/* filename and path to toplist */
-char cbfilename[80]="";			/* filename and path to callbase */
+char rcfilename[1024]="";			/* filename and path to qrqrc */
+char tlfilename[1024]="";			/* filename and path to toplist */
+char cbfilename[1024]="";			/* filename and path to callbase */
 
+char destdir[1024]="";
 
 int main (int argc, char *argv[]) {
+
+  /* if built as osx bundle set DESTDIR to Resources dir of bundle */
+#ifdef OSX_BUNDLE
+  char* p_slash = strrchr(argv[0], '/');
+  strncpy(destdir, argv[0], p_slash - argv[0]);
+  strcat(destdir, "/../Resources");
+#else
+  strcpy(destdir, DESTDIR);
+#endif
+
 	char tmp[80]="";
 	char input[15]="";
 	int i=0;						/* counter etc. */
-	int nrofcalls=0;
+	unsigned long nrofcalls=0;
 	int callnr;						/* nr of actual call in attempt */
-	
+	FILE *fh;	
 	/* create windows */
 	WINDOW *top_w;					/* actual score					*/
 	WINDOW *mid_w;					/* callsign history/mistakes	*/
@@ -164,6 +181,7 @@ int main (int argc, char *argv[]) {
 
 	check_toplist();
 
+
 	/* buffer for audio */
 	for (long_i=0;long_i<88200;long_i++) {
 		buffer[long_i]=0;
@@ -183,7 +201,7 @@ int main (int argc, char *argv[]) {
 
 	/****** Reading callsign database ******/
 	printw("\nReading callsign database... ");
-	nrofcalls = read_callbase();	
+	nrofcalls = read_callbase();
 
 	printw("done. %d calls read.\n\n", nrofcalls);
 	printw("Press any key to continue...");
@@ -757,8 +775,8 @@ static int add_to_toplist(char * mycall, int score, int maxspeed) {
 		}
 		tmp[i] = '\0';
 		i = atoi(tmp);				/* i = score of current line */
-		if (i < score){ 			/* insert score and shift lines below. */
-			score = i;				/* ugly. */
+		if (i < score){ 			/* insert score and shift lines below */
+			score = i;				/* (ugly) */
 			fseek(fh, -32L, SEEK_CUR);
 			fputs(insertline, fh);
 			strcpy(insertline, line);	/* actual line -> print one later */
@@ -958,8 +976,8 @@ static void *morse(void *arg) {
 		tonegen(0, 2*ms, SILENCE);
 	}
 
-	write(dsp_fd, buffer, 88200);
-	close(dsp_fd);
+	write_audio(dsp_fd, buffer, 88200);
+	close_audio(dsp_fd);
 
 	return NULL;
 }
@@ -998,54 +1016,11 @@ static int tonegen (int freq, int len, int waveform) {
 		
 		out = (int) (val * 32500.0);
 		out = out + (out<<16);				/* add second channel */
-		write(dsp_fd, &out, sizeof(out));
+		write_audio(dsp_fd, &out, sizeof(out));
 	}
 	return 0;
 }
 
-static int open_dsp (char * device) {
-	int tmp;
-	int fd;
-	
-	if ((fd = open(device, O_WRONLY, 0)) == -1) {
-		endwin();
-		perror(device);
-		exit(EXIT_FAILURE);
-	}
-
-	tmp = AFMT_S16_NE; 
-	if (ioctl(fd, SNDCTL_DSP_SETFMT, &tmp)==-1) {
-		endwin();
-		perror("SNDCTL_DSP_SETFMT");
-		exit(EXIT_FAILURE);
-	}
-
-	if (tmp != AFMT_S16_NE) {
-		endwin();
-		fprintf(stderr, "Cannot switch to AFMT_S16_NE\n");
-		exit(EXIT_FAILURE);
-	}
-  
-	tmp = 2;	/* 2 channels, stereo */
-	if (ioctl(fd, SNDCTL_DSP_CHANNELS, &tmp)==-1) {
-		endwin();
-		perror("SNDCTL_DSP_CHANNELS");
-		exit(EXIT_FAILURE);
-	}
-
-	if (tmp != 2) {
-		endwin();
-		fprintf(stderr, "No stereo mode possible :(.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	if (ioctl(fd, SNDCTL_DSP_SPEED, &samplerate)==-1) {
-		endwin();
-		perror("SNDCTL_DSP_SPEED");
-		exit(EXIT_FAILURE);
-	}
-return fd;
-}
 
 static int save_config () {
 	FILE *fh;
@@ -1171,6 +1146,9 @@ static int find_files () {
 
 	FILE *fh;
 	const char *homedir = NULL;
+	char tmp_rcfilename[1024] = "";
+	char tmp_tlfilename[1024] = "";
+	char tmp_cbfilename[1024] = "";
 
 	printw("\nChecking for neccesary files (qrqrc, toplist, callbase)...\n");
 	
@@ -1191,13 +1169,21 @@ static int find_files () {
 		 * DESTDIR/share/qrq/. */
 
 		if ((fh = fopen(rcfilename, "r")) == NULL ) {
-			printw("... not found in %s/.qrq/. Checking "DESTDIR"/share/qrq..."
-							"\n", homedir);
+			printw("... not found in %s/.qrq/. Checking %s/share/qrq..."
+							"\n", homedir, destdir);
 			/* check for the files in DESTDIR/share/qrq/. if exists, copy 
 			 * qrqrc and toplist to ~/.qrq/  */
-			if (((fh = fopen(DESTDIR"/share/qrq/qrqrc", "r")) == NULL) ||
-				((fh = fopen(DESTDIR"/share/qrq/toplist", "r")) == NULL) ||
-				 ((fh = fopen(DESTDIR"/share/qrq/callbase", "r")) == NULL)) {
+
+			strcpy(tmp_rcfilename, destdir);
+			strcat(tmp_rcfilename, "/share/qrq/qrqrc");
+			strcpy(tmp_tlfilename, destdir);
+			strcat(tmp_tlfilename, "/share/qrq/toplist");
+			strcpy(tmp_cbfilename, destdir);
+			strcat(tmp_cbfilename, "/share/qrq/callbase");
+
+			if (((fh = fopen(tmp_rcfilename, "r")) == NULL) ||
+				((fh = fopen(tmp_tlfilename, "r")) == NULL) ||
+				 ((fh = fopen(tmp_cbfilename, "r")) == NULL)) {
 				printw("Sorry: Couldn't find 'qrqrc', 'toplist' and"
 			   			" 'callbase' anywhere. Exit.\n");
 				getch();
@@ -1206,13 +1192,13 @@ static int find_files () {
 			}
 			else {			/* finally found it in DESTDIR/share/qrq/ ! */
 				/* abusing rcfilename here for something else temporarily */
-				printw("Found files in "DESTDIR"/share/qrq/."
+				printw("Found files in %s/share/qrq/."
 						"\nCreating directory %s/.qrq/ and copy qrqrc and"
-						" toplist there.\n", homedir);
+						" toplist there.\n", destdir, homedir);
 				strcpy(rcfilename, homedir);
 				strcat(rcfilename, "/.qrq/");
 				j = mkdir(rcfilename,  0777);
-				if (j) {
+				if (j && (errno != EEXIST)) {
 					printw("Failed to create %s! Exit.\n", rcfilename);
 					getch();
 					endwin();
@@ -1222,7 +1208,9 @@ static int find_files () {
 				 * DESTDIR/local/, so I assume copying files won't cause any
 				 * problem, with system()... */
 
-				strcpy(rcfilename, "install -m 644 "DESTDIR"/share/qrq/toplist "); 
+				strcpy(rcfilename, "install -m 644 ");
+				strcat(rcfilename, tmp_tlfilename);
+				strcat(rcfilename, " ");
 				strcat(rcfilename, homedir);
 				strcat(rcfilename, "/.qrq/ 2> /dev/null");
 				if (system(rcfilename)) {
@@ -1231,7 +1219,9 @@ static int find_files () {
 					endwin();
 					exit(EXIT_FAILURE);
 				}
-				strcpy(rcfilename, "install -m 644 "DESTDIR"/share/qrq/qrqrc "); 
+				strcpy(rcfilename, "install -m 644 ");
+				strcat(rcfilename, tmp_rcfilename);
+				strcat(rcfilename, " ");
 				strcat(rcfilename, homedir);
 				strcat(rcfilename, "/.qrq/ 2> /dev/null");
 				if (system(rcfilename)) {
@@ -1246,14 +1236,15 @@ static int find_files () {
 				strcat(rcfilename, "/.qrq/qrqrc");
 				strcpy(tlfilename, homedir);
 				strcat(tlfilename, "/.qrq/toplist");
-				strcpy(cbfilename, DESTDIR"/share/qrq/callbase");
+				strcpy(cbfilename, tmp_cbfilename);
 			} /* found in DESTDIR/share/qrq/ */
 		}
 		else {
 			printw("... found files in %s/.qrq/.\n", homedir);
 			strcat(tlfilename, homedir);
 			strcat(tlfilename, "/.qrq/toplist");
-			strcpy(cbfilename, DESTDIR"/share/qrq/callbase");
+			strcpy(cbfilename, destdir);
+			strcat(cbfilename, "/share/qrq/callbase");
 		}
 	}
 	else {
@@ -1316,7 +1307,6 @@ static int statistics () {
 		system("gnuplot /tmp/qrq-plot 2> /dev/null &");
 	return 0;
 }
-
 
 
 int read_callbase () {
