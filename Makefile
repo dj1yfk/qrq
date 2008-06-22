@@ -107,6 +107,7 @@ dist:
 			COPYING qrq.1 Makefile qrq-$(VERSION)
 	cp OpenAlImp.h OpenAlImp.cpp OpenAlStream.cpp OpenAlStream.h qrq-$(VERSION)
 	cp -r OSXExtras qrq-$(VERSION)
+	rm -rf qrq-$(VERSION)/OSXExtras/.svn/
 	tar -zcf qrq-$(VERSION).tar.gz qrq-$(VERSION)
 	mv qrq-$(VERSION) releases/
 	mv qrq-$(VERSION).tar.gz releases/
