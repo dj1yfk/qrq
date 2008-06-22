@@ -1,6 +1,6 @@
 /* 
 qrq - High speed morse trainer, similar to DL4MM's Rufz    
-Copyright (C) 2006-2007  Fabian Kurz
+Copyright (C) 2006-2008  Fabian Kurz
 
 $Id$
 
@@ -148,7 +148,7 @@ int main (int argc, char *argv[]) {
 	WINDOW *right_w;				/* highscore list/settings		*/
 
 	if (argc > 1) {
-		printf("qrq v%s  (c) 2006-2007 Fabian Kurz, DJ1YFK. "
+		printf("qrq v%s  (c) 2006-2008 Fabian Kurz, DJ1YFK. "
 					"http://fkurz.net/ham/qrq.html\n", VERSION);
 		printf("High speed morse telegraphy trainer, similar to"
 					" DL4MM's RUFZ.\n\n");
@@ -167,7 +167,7 @@ int main (int argc, char *argv[]) {
 	keypad(stdscr, TRUE);
 	scrollok(stdscr, FALSE);
 
-	printw("qrq v%s - Copyright (C) 2006-2007 Fabian Kurz, DJ1YFK\n", VERSION);
+	printw("qrq v%s - Copyright (C) 2006-2008 Fabian Kurz, DJ1YFK\n", VERSION);
 	printw("This is free software, and you are welcome to redistribute it\n");
 	printw("under certain conditions (see COPYING).\n");
 

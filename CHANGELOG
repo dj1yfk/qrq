@@ -1,4 +1,4 @@
-0.1.4  -  15. Dec 2007  -  * Implemented dynamic allocation of the callsign 
+0.1.4  -  22. Jun 2008  -  * Implemented dynamic allocation of the callsign 
                              database array.
                            * Callsign database updated, over 22000 callsigns
                              now.
