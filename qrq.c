@@ -665,10 +665,10 @@ static int calc_score (char * realcall, char * input, int spd, char * output) {
 	x = strlen(realcall);
 
 	if (strcmp(input, realcall) == 0) {		 /* exact match! */
-		speed += 10;
 		output[0]='*';						/* * == OK, no mistake */
 		output[1]='\0';	
 		if (speed > maxspeed) {maxspeed = speed;}
+		speed += 10;
 		return 2*x*spd;						/* score */
 	}
 	else {									/* assemble error string */
