@@ -323,8 +323,8 @@ while (status == 1) {
 		pthread_join(cwthread, NULL);
 		
 		/* select a callsign from the calls-array */
-		i= (int) (1+ (20084.0*rand()/(RAND_MAX+1.0)));
-		
+		i= (int) (((float)nrofcalls*rand()/(RAND_MAX+1.0)));
+
 		/* output frequency handling a) random b) fixed */
 		if ( constanttone == 0 ) {
 				/* random freq, fraction of samplerate */
@@ -1358,6 +1358,12 @@ int read_callbase () {
 				break;
 	}
 	fclose(fh);
+
+	if (!nr) {
+		printw("\nError: Callsign database emtpy, no calls read. Exiting.\n");
+		getch(); endwin();
+		exit(EXIT_FAILURE);
+	}
 
 	return nr;
 
