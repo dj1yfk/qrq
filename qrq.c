@@ -1,6 +1,6 @@
 /* 
 qrq - High speed morse trainer, similar to DL4MM's Rufz    
-Copyright (C) 2006-2008  Fabian Kurz
+Copyright (C) 2006-2010  Fabian Kurz
 
 $Id$
 
@@ -61,7 +61,7 @@ typedef void *AUDIO_HANDLE;
 #endif
 
 /* callsign array will be dynamically allocated */
-static char **calls;
+static char **calls = NULL;
 const static char *codetable[] = {
 ".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..",".---",
 "-.-",".-..","--","-.","---",".--.","--.-",".-.","...","-","..-","...-",
@@ -82,7 +82,8 @@ static int mode=1;						/* 0 = overwrite, 1 = insert */
 static int j=0;							/* counter etc. */
 static int constanttone=0;              /* if 1 don't change the pitch */
 static int ctonefreq=800;               /* if constanttone=1 use this freq */
-
+static int f6=0;						/* f6 = 1: allow unlimited repeats */
+static int fixspeed=0;					/* keep speed fixed, regardless of err*/
 
 long samplerate=44100;
 static long long_i;
@@ -138,6 +139,7 @@ int main (int argc, char *argv[]) {
 	char tmp[80]="";
 	char input[15]="";
 	int i=0;						/* counter etc. */
+	int f6pressed=0;
 	unsigned long nrofcalls=0;
 	int callnr;						/* nr of actual call in attempt */
 	FILE *fh;	
@@ -148,7 +150,7 @@ int main (int argc, char *argv[]) {
 	WINDOW *right_w;				/* highscore list/settings		*/
 
 	if (argc > 1) {
-		printf("qrq v%s  (c) 2006-2008 Fabian Kurz, DJ1YFK. "
+		printf("qrq v%s  (c) 2006-2010 Fabian Kurz, DJ1YFK. "
 					"http://fkurz.net/ham/qrq.html\n", VERSION);
 		printf("High speed morse telegraphy trainer, similar to"
 					" DL4MM's RUFZ.\n\n");
@@ -167,7 +169,7 @@ int main (int argc, char *argv[]) {
 	keypad(stdscr, TRUE);
 	scrollok(stdscr, FALSE);
 
-	printw("qrq v%s - Copyright (C) 2006-2008 Fabian Kurz, DJ1YFK\n", VERSION);
+	printw("qrq v%s - Copyright (C) 2006-2010 Fabian Kurz, DJ1YFK\n", VERSION);
 	printw("This is free software, and you are welcome to redistribute it\n");
 	printw("under certain conditions (see COPYING).\n");
 
@@ -323,15 +325,14 @@ while (status == 1) {
 		pthread_join(cwthread, NULL);
 		
 		/* select a callsign from the calls-array */
-		i= (int) (((float)nrofcalls*rand()/(RAND_MAX+1.0)));
+		i= (int) ((float) nrofcalls*rand()/(RAND_MAX+1.0));
 
 		/* output frequency handling a) random b) fixed */
 		if ( constanttone == 0 ) {
 				/* random freq, fraction of samplerate */
 				freq = (int) (samplerate/(50+(40.0*rand()/(RAND_MAX+1.0))));
 		}
-		else {
-				/* fixed frequency */
+		else { /* fixed frequency */
 				freq = ctonefreq;
 		}
 
@@ -346,14 +347,16 @@ while (status == 1) {
 		j = pthread_create(&cwthread, NULL, morse, calls[i]);	
 		thread_fail(j);		
 		
-		if (readcall(bot_w, 1, 8, input) > 4) {	/* F5 or F6 was pressed */
+		f6pressed=0;
+		while (readcall(bot_w, 1, 8, input) > 4) {	/* F5 or F6 was pressed */
+			if (f6pressed && (f6 == 0)) {
+				continue;
+			}
+			f6pressed=1;
 			/* wait for old cwthread to finish, then send call again */
 			pthread_join(cwthread, NULL);
 			j = pthread_create(&cwthread, NULL, morse, calls[i]);	
 			thread_fail(j);		
-			while (readcall(bot_w, 1, 8, input) > 4) {
-				/* pressing F6 again has no effect */
-			}
 		}
 		tmp[0]='\0';	
 		score += calc_score(calls[i], input, speed, tmp);
@@ -399,7 +402,7 @@ while (status == 2) {
 	curs_set(0);
 	wattron(mid_w,A_BOLD);
 	mvwaddstr(mid_w,2,1, "Configuration:          Value                Change");
-	mvwprintw(mid_w,11,2, "      F6                    F10            ");
+	mvwprintw(mid_w,12,2, "      F6                    F10            ");
 	mvwprintw(mid_w,13,2, "      F2");
 	wattroff(mid_w, A_BOLD);
 	mvwprintw(mid_w,3,2, "Initial Speed:         %3d CpM / %3d WpM" 
@@ -414,11 +417,16 @@ while (status == 2) {
 					"                 k/l or 0", (constanttone)?ctonefreq : 0);
 	mvwprintw(mid_w,8,2, "CW waveform:           %-8s"
 					"             w", wavename);
-	mvwprintw(mid_w,11,2, "Press");
-	mvwprintw(mid_w,11,11, "to play sample CW,");
-	mvwprintw(mid_w,11,34, "to go back.");
+	mvwprintw(mid_w,9,2, "Allow unlimited F6:    %-3s"
+					"                  f", (f6 ? "yes" : "no"));
+	mvwprintw(mid_w,10,2, "Fixed CW speed*:       %-3s"
+					"                  s", (fixspeed ? "yes" : "no"));
+	mvwprintw(mid_w,12,2, "Press");
+	mvwprintw(mid_w,12,11, "to play sample CW,");
+	mvwprintw(mid_w,12,34, "to go back.");
 	mvwprintw(mid_w,13,2, "Press");
 	mvwprintw(mid_w,13,11, "to save config permanently.");
+	mvwprintw(mid_w,15,13, "* Fixed speed scores not eligible for toplist");
 	wrefresh(mid_w);
 	wrefresh(bot_w);
 	
@@ -471,6 +479,12 @@ while (status == 2) {
 			else {
 				constanttone = 1;
 			}
+			break;
+		case 'f':
+				f6 = (f6 ? 0 : 1);
+			break;
+		case 's':
+				fixspeed = (fixspeed ? 0 : 1);
 			break;
 		case 259:							/* arrow key up */
 			initialspeed += 10;
@@ -668,7 +682,7 @@ static int calc_score (char * realcall, char * input, int spd, char * output) {
 		output[0]='*';						/* * == OK, no mistake */
 		output[1]='\0';	
 		if (speed > maxspeed) {maxspeed = speed;}
-		speed += 10;
+		if (!fixspeed) speed += 10;
 		return 2*x*spd;						/* score */
 	}
 	else {									/* assemble error string */
@@ -684,7 +698,7 @@ static int calc_score (char * realcall, char * input, int spd, char * output) {
 			}
 		}
 		output[i]='\0';
-		if (speed > 29) {speed -= 10;}
+		if ((speed > 29) && !fixspeed) {speed -= 10;}
 		/* score when 1-3 mistakes was made */
 		if (m < 4) {
 			return (int) (2*x*spd)/(5*m);
@@ -916,6 +930,20 @@ static int read_config () {
 				printw("  line  %2d: ctonefreq: %d\n", line, ctonefreq);
 			}
 		}
+		else if (strstr(tmp, "f6=")) {
+			f6=0;
+			if (tmp[3] == '1') {
+				f6 = 1;
+			}
+			printw("  line  %2d: unlimited f6: %s\n", line, (f6 ? "yes":"no"));
+        }
+		else if (strstr(tmp, "fixspeed=")) {
+			fixspeed=0;
+			if (tmp[9] == '1') {
+				fixspeed = 1;
+			}
+			printw("  line  %2d: fixed speed:  %s\n", line, (fixspeed ? "yes":"no"));
+        }
 	}
 
 	printw("Finished reading qrqrc.\n");
@@ -1071,6 +1099,16 @@ static int save_config () {
 		else if (strstr(tmp,"waveform=")) {
 			fseek(fh, -(i+1), SEEK_CUR);
 			snprintf(tmp, i+1, "waveform=%d ", waveform);
+			fputs(tmp, fh);	
+		}
+		else if (strstr(tmp,"f6=")) {
+			fseek(fh, -(i+1), SEEK_CUR);
+			snprintf(tmp, i+1, "f6=%d ", f6);
+			fputs(tmp, fh);	
+		}
+		else if (strstr(tmp,"fixspeed=")) {
+			fseek(fh, -(i+1), SEEK_CUR);
+			snprintf(tmp, i+1, "fixspeed=%d ", fixspeed);
 			fputs(tmp, fh);	
 		}
 	}
@@ -1313,7 +1351,8 @@ static int statistics () {
 
 int read_callbase () {
 	FILE *fh;
-	int c;
+	int c,i;
+	int maxlen=0;
 	char tmp[80] = "";
 	int nr=0;
 
@@ -1324,25 +1363,32 @@ int read_callbase () {
 		exit(EXIT_FAILURE);
 	}
 
-	/* count the lines/calls */
+	/* count the lines/calls and lengths */
+	i=0;
 	while ((c = getc(fh)) != EOF) {
+		i++;
 		if (c == '\n') {
 			nr++;
+			maxlen = (i > maxlen) ? i : maxlen;
+			i = 0;
 		}
 	}
+	maxlen++;
 
-	/* allocate memory for calls array */
+	/* allocate memory for calls array, free if needed */
+
+	free(calls);
 
 	if ((calls = (char **) malloc( (size_t) sizeof(char *)*nr )) == NULL) {
 		fprintf(stderr, "Error: Couldn't allocate %d bytes!\n", 
-						(int) sizeof(char)*nr*15);
+						(int) sizeof(char)*nr);
 		exit(EXIT_FAILURE);
 	}
 	
-	/* Allocate each element of the array with size 15 */
+	/* Allocate each element of the array with size maxlen */
 	for (c=0; c < nr; c++) {
-		if ((calls[c] = (char *) malloc (15 * sizeof(char))) == NULL) {
-			fprintf(stderr, "Error: Couldn't allocate 15 bytes!\n");
+		if ((calls[c] = (char *) malloc (maxlen * sizeof(char))) == NULL) {
+			fprintf(stderr, "Error: Couldn't allocate %d bytes!\n", maxlen);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -1350,8 +1396,14 @@ int read_callbase () {
 	rewind(fh);
 	
 	nr=0;
-	while (fgets(tmp,15,fh) != NULL) {
-		tmp[strlen(tmp)-1]='\0';				/* remove newline */
+	while (fgets(tmp,maxlen,fh) != NULL) {
+		for (i = 0; i < strlen(tmp); i++) {
+				tmp[i] = toupper(tmp[i]);
+		}
+		tmp[i-1]='\0';				/* remove newline */
+		if (tmp[i-2] == '\r') {		/* also for DOS files */
+			tmp[i-2] = '\0';
+		}
 		strcpy(calls[nr],tmp);
 		nr++;
 		if (nr == c) 			/* may happen if call file corrupted */

@@ -1,6 +1,6 @@
 # qrq Makefile -- Fabian Kurz, DJ1YFK -- http://fkurz.net/ham/qrq.html
 
-VERSION=0.1.4
+VERSION=0.1.5
 DESTDIR?=/usr
 
 # set to YES if you want to use OpenAL instead of OSS
