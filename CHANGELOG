@@ -1,6 +1,7 @@
 0.1.5  -  15. Apr 2010  -  * Added options for fixed CW speed (regardless of
                              errors) and unlimited usage of repeats. Suggested
                              by AA0HW.
+                           * No more duplicate callsigns in one attempt
                            * Call databases with DOS linebreaks can now be used.
                            * Fixed bugs in memory allocation.
 

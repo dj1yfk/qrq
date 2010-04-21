@@ -25,6 +25,7 @@ Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <ncurses.h>
 #include <stdlib.h>
 #include <string.h>
+#include <libgen.h>				/* basename */
 #include <ctype.h>
 #include <time.h> 
 #include <math.h>
@@ -62,6 +63,7 @@ typedef void *AUDIO_HANDLE;
 
 /* callsign array will be dynamically allocated */
 static char **calls = NULL;
+
 const static char *codetable[] = {
 ".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..",".---",
 "-.-",".-..","--","-.","---",".--.","--.-",".-.","...","-","..-","...-",
@@ -138,7 +140,7 @@ int main (int argc, char *argv[]) {
 
 	char tmp[80]="";
 	char input[15]="";
-	int i=0;						/* counter etc. */
+	int i=0,j=0;						/* counter etc. */
 	int f6pressed=0;
 	unsigned long nrofcalls=0;
 	int callnr;						/* nr of actual call in attempt */
@@ -177,12 +179,10 @@ int main (int argc, char *argv[]) {
 
 	/* search for 'toplist', 'qrqrc' and 'callbase' and put their locations
 	 * into tlfilename, rcfilename, cbfilename */
-
 	find_files();
 
 	/* check if the toplist is in the suitable format. as of 0.0.7, each line
 	 * is 31 characters long, with the added time stamp */
-
 	check_toplist();
 
 
@@ -219,7 +219,7 @@ int main (int argc, char *argv[]) {
 	right_w = newwin(24, 20, 0, 60);
 	
 	/* no need to join here, this is the first possible time CW is sent */
-	pthread_create(&cwthread, NULL, & morse, (void *) "QRQ");		
+	pthread_create(&cwthread, NULL, & morse, (void *) "QRQ");
 
 /* very outter loop */
 while (1) {	
@@ -317,6 +317,10 @@ while (status == 1) {
 	update_score(top_w);
 	wrefresh(top_w);
 
+
+	/* Reread callbase */
+	(void) read_callbase();
+
 	/****** send 50 calls, ask for input, score ******/
 	
 	for (callnr=1; callnr < 51; callnr++) {
@@ -324,8 +328,17 @@ while (status == 1) {
 		 * neccessary. */
 		pthread_join(cwthread, NULL);
 		
-		/* select a callsign from the calls-array */
-		i= (int) ((float) nrofcalls*rand()/(RAND_MAX+1.0));
+		/* select an unused callsign from the calls-array */
+		do {
+			i = (int) ((float) nrofcalls*rand()/(RAND_MAX+1.0));
+		} while (calls[i] == NULL);
+
+		/* only relevant for callbases with less than 50 calls */
+		if (nrofcalls == callnr) { 		/* Only one call left!" */
+				callnr = 50;			/* Get out after next one */
+		}
+
+
 
 		/* output frequency handling a) random b) fixed */
 		if ( constanttone == 0 ) {
@@ -365,6 +378,7 @@ while (status == 1) {
 				show_error(mid_w, calls[i], tmp);
 		}
 		input[0]='\0';
+		calls[i] = NULL;
 	}
 
 	/* attempt is over, send AR */
@@ -401,32 +415,34 @@ while (status == 2) {
 	mvwaddstr(bot_w,1,1, "                                                         ");
 	curs_set(0);
 	wattron(mid_w,A_BOLD);
-	mvwaddstr(mid_w,2,1, "Configuration:          Value                Change");
+	mvwaddstr(mid_w,1,1, "Configuration:          Value                Change");
 	mvwprintw(mid_w,12,2, "      F6                    F10            ");
 	mvwprintw(mid_w,13,2, "      F2");
 	wattroff(mid_w, A_BOLD);
-	mvwprintw(mid_w,3,2, "Initial Speed:         %3d CpM / %3d WpM" 
+	mvwprintw(mid_w,2,2, "Initial Speed:         %3d CpM / %3d WpM" 
 					"    up/down", initialspeed, initialspeed/5);
-	mvwprintw(mid_w,4,2, "CW risetime (ms):      %d" 
+	mvwprintw(mid_w,3,2, "CW risetime (ms):      %d" 
 					"                    +/-", rise);
-	mvwprintw(mid_w,5,2, "CW falltime (ms):      %d" 
+	mvwprintw(mid_w,4,2, "CW falltime (ms):      %d" 
 					"                    ;/:", fall);
-	mvwprintw(mid_w,6,2, "Callsign:              %-14s" 
+	mvwprintw(mid_w,5,2, "Callsign:              %-14s" 
 					"       c", mycall);
-	mvwprintw(mid_w,7,2, "CW pitch (0 = random): %-4d"
+	mvwprintw(mid_w,6,2, "CW pitch (0 = random): %-4d"
 					"                 k/l or 0", (constanttone)?ctonefreq : 0);
-	mvwprintw(mid_w,8,2, "CW waveform:           %-8s"
+	mvwprintw(mid_w,7,2, "CW waveform:           %-8s"
 					"             w", wavename);
-	mvwprintw(mid_w,9,2, "Allow unlimited F6:    %-3s"
+	mvwprintw(mid_w,8,2, "Allow unlimited F6*:   %-3s"
 					"                  f", (f6 ? "yes" : "no"));
-	mvwprintw(mid_w,10,2, "Fixed CW speed*:       %-3s"
+	mvwprintw(mid_w,9,2, "Fixed CW speed*:       %-3s"
 					"                  s", (fixspeed ? "yes" : "no"));
+	mvwprintw(mid_w,10,2, "Callsign database:     %-15s"
+					"      d", basename(cbfilename));
 	mvwprintw(mid_w,12,2, "Press");
 	mvwprintw(mid_w,12,11, "to play sample CW,");
 	mvwprintw(mid_w,12,34, "to go back.");
 	mvwprintw(mid_w,13,2, "Press");
 	mvwprintw(mid_w,13,11, "to save config permanently.");
-	mvwprintw(mid_w,15,13, "* Fixed speed scores not eligible for toplist");
+	mvwprintw(mid_w,15,13, "* Makes scores not eligible for toplist");
 	wrefresh(mid_w);
 	wrefresh(bot_w);
 	
@@ -505,6 +521,10 @@ while (status == 2) {
 			}
 			p=0;							/* cursor position */
 			break;
+		case 'd':							/* go to database browser */
+				status = 3;
+				curs_set(1);
+			break;
 		case KEY_F(2):
 			save_config();	
 			mvwprintw(mid_w,14,2, "Config saved!");
@@ -518,13 +538,46 @@ while (status == 2) {
 			thread_fail(j);
 			break;
 		case KEY_F(10):
+		case KEY_F(3):
 			status = 1;
 			curs_set(1);
 	}
 
 	speed = initialspeed;
-	
 }
+
+while (status == 3) {
+
+	clear_display(mid_w);
+
+	wattron(mid_w,A_BOLD);
+	mvwaddstr(mid_w,1,1, "Change Callsign Database");
+	wattroff(mid_w,A_BOLD);
+	mvwaddstr(mid_w,3,1, ".qrq files found (in "DESTDIR"/share/qrq/ and ~/.qrq/):");
+	
+//	find_callbases(cblist);
+
+
+
+	
+	wrefresh(mid_w);
+
+	getch();
+
+
+	status = 2;	/* back to config menu */
+}
+
+
+
+
+
+
+
+
+
+
+
 
 } /* very outter loop */
 
