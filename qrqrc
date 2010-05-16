@@ -1,10 +1,10 @@
 # Configuration file for qrq by DJ1YFK. Change values as needed. 
 # NOTE: Don't leave any spaces between the = and the assigned value.
 # for example: dspdevice = /dev/dsp won't work!
-# The settings (except dspdevice) can be changed and saved from within the
+# The settings can be changed and saved from within the
 # program, so there is usually no need to manually change anything here.
 
-callsign=MYCALL      # your callsign
+callsign=DJ1YFK      # your callsign
 initialspeed=400     # initial speed in LpM (5 LpM = 1 WPM)
 dspdevice=/dev/dsp   # your DSP device, usually /dev/dsp, /dev/dsp0 ...
 
@@ -36,7 +36,7 @@ f6=0
 fixspeed=0     
 
 # allow unlimited attempts (instead of just 50 calls)
-unlimitedattempt=1
+unlimitedattempt=0
 
-# callbase
+# Callbase - specify a different file here, if desired.
 # callbase=/tmp/test

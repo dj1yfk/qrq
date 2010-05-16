@@ -5,6 +5,7 @@
 	* Call database file can be changed/selected in a menu now
 	* Call databases with DOS linebreaks can now be used.
 	* Fixed bugs in memory allocation.
+	* CW edges changed to raised cosine
 	* Reformatted ChangeLog
 
 0.1.4 / 2008-06-22   Fabian Kurz <mail@fkurz.net>

@@ -1,5 +1,5 @@
 /* 
-qrq - High speed morse trainer, similar to DL4MM's Rufz    
+qrq - High speed morse trainer, similar to the DOS classic "Rufz"
 Copyright (C) 2006-2010  Fabian Kurz
 
 $Id$
@@ -119,7 +119,7 @@ static int read_config();
 static int save_config();
 static int tonegen(int freq, int length, int waveform);
 static void *morse(void * arg); 
-static int readcall(WINDOW *win, int y, int x, char * call); 
+static int readline(WINDOW *win, int y, int x, char *line, int i); 
 static void thread_fail (int j);
 static int check_toplist ();
 static int find_files ();
@@ -127,16 +127,17 @@ static int statistics ();
 static int read_callbase ();
 static void find_callbases();
 static void select_callbase ();
+static void help ();
 
 pthread_t cwthread;				/* thread for CW output, to enable
 								   keyboard reading at the same time */
 pthread_attr_t cwattr;
 
-char rcfilename[1024]="";			/* filename and path to qrqrc */
-char tlfilename[1024]="";			/* filename and path to toplist */
-char cbfilename[1024]="";			/* filename and path to callbase */
+char rcfilename[PATH_MAX]="";			/* filename and path to qrqrc */
+char tlfilename[PATH_MAX]="";			/* filename and path to toplist */
+char cbfilename[PATH_MAX]="";			/* filename and path to callbase */
 
-char destdir[1024]="";
+char destdir[PATH_MAX]="";
 
 
 /* create windows */
@@ -162,16 +163,7 @@ int main (int argc, char *argv[]) {
 	int f6pressed=0;
 
 	if (argc > 1) {
-		printf("qrq v%s  (c) 2006-2010 Fabian Kurz, DJ1YFK. "
-					"http://fkurz.net/ham/qrq.html\n", VERSION);
-		printf("High speed morse telegraphy trainer, similar to"
-					" DL4MM's RUFZ.\n\n");
-		printf("This is free software, and you are welcome to" 
-						" redistribute it\n");
-		printf("under certain conditions (see COPYING).\n\n");
-		printf("Start 'qrq' without any command line arguments for normal"
-					" operation.\n");
-		exit(0);
+		help();
 	}
 	
 	(void) initscr();
@@ -290,7 +282,7 @@ while (status == 1) {
 	speed = initialspeed;
 	
 	/* prompt for own callsign */
-	i = readcall(bot_w, 1, 30, mycall);
+	i = readline(bot_w, 1, 30, mycall, 0);
 
 	/* F5 -> Configure sound */
 	if (i == 5) {
@@ -376,7 +368,7 @@ while (status == 1) {
 		thread_fail(j);		
 		
 		f6pressed=0;
-		while (readcall(bot_w, 1, 8, input) > 4) {	/* F5 or F6 was pressed */
+		while (readline(bot_w, 1, 8, input,1) > 4) {/* F5 or F6 was pressed */
 			if (f6pressed && (f6 == 0)) {
 				continue;
 			}
@@ -454,12 +446,14 @@ while (status == 2) {
 					"                  u", (unlimitedattempt ? "yes" : "no"));
 	mvwprintw(mid_w,11,2, "Callsign database:     %-15s"
 					"      d (%d)", basename(cbfilename),nrofcalls);
+	mvwprintw(mid_w,12,2, "DSP device:            %-15s"
+					"      e", dspdevice);
 	mvwprintw(mid_w,14,2, "Press");
 	mvwprintw(mid_w,14,11, "to play sample CW,");
 	mvwprintw(mid_w,14,34, "to go back.");
 	mvwprintw(mid_w,15,2, "Press");
 	mvwprintw(mid_w,15,11, "to save config permanently.");
-	mvwprintw(bot_w,1,11, "* Makes scores not eligible for toplist");
+	mvwprintw(bot_w,1,11, "* Makes scores ineligible for toplist");
 	wrefresh(mid_w);
 	wrefresh(bot_w);
 	
@@ -531,13 +525,19 @@ while (status == 2) {
 			}
 			break;
 		case 'c':
-			readcall(mid_w, 6, 25, mycall);
-		
+			readline(mid_w, 5, 25, mycall, 1);
 			if (strlen(mycall) == 0) {
 				strcpy(mycall, "NOCALL");
 			}
 			else if (strlen(mycall) > 7) {	/* cut excessively long calls */
 				mycall[7] = '\0';
+			}
+			p=0;							/* cursor position */
+			break;
+		case 'e':
+			readline(mid_w, 12, 25, dspdevice, 0);
+			if (strlen(dspdevice) == 0) {
+				strcpy(dspdevice, "/dev/dsp");
 			}
 			p=0;							/* cursor position */
 			break;
@@ -613,12 +613,13 @@ while (status == 3) {
 }
 
 
-/* reads a callsign in *win at y/x and writes it to *call */
-static int readcall(WINDOW *win, int y, int x, char * call) {
+/* reads a callsign etc. in *win at y/x and writes it to *line */
+
+static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 	int c;						/* character we read */
 	int i=0;
 
-	if (strlen(call) == 0) {p=0;}	/* cursor to start if no call in buffer */
+	if (strlen(line) == 0) {p=0;}	/* cursor to start if no call in buffer */
 	
 	if (mode == 1) { 
 		mvwaddstr(win,1,55,"INS");
@@ -627,7 +628,7 @@ static int readcall(WINDOW *win, int y, int x, char * call) {
 		mvwaddstr(win,1,55,"OVR");
 	}
 
-	mvwaddstr(win,y,x,call);
+	mvwaddstr(win,y,x,line);
 	wmove(win,y,x+p);
 	wrefresh(win);
 	curs_set(TRUE);
@@ -635,43 +636,45 @@ static int readcall(WINDOW *win, int y, int x, char * call) {
 	while ((c = getch()) != '\n') {
 
 		if (((c > 64 && c < 91) || (c > 96 && c < 123) || (c > 47 && c < 58)
-					 || c == '/') && strlen(call) < 14) {
+					 || c == '/') && strlen(line) < 14) {
 	
-			call[strlen(call)+1]='\0';
-			c = toupper(c);
+			line[strlen(line)+1]='\0';
+			if (capitals) {
+				c = toupper(c);
+			}
 			if (mode == 1) {						/* insert */
-				for(i=strlen(call);i > p; i--) {	/* move all chars by one */
-					call[i] = call[i-1];
+				for(i=strlen(line);i > p; i--) {	/* move all chars by one */
+					line[i] = line[i-1];
 				}
 			} 
-			call[p]=c;						/* insert into gap */
+			line[p]=c;						/* insert into gap */
 			p++;
 		}
 		else if ((c == KEY_BACKSPACE || c == 127 || c == 9)
 						&& p != 0) {					/* BACKSPACE */
-			for (i=p-1;i < strlen(call); i++) {
-				call[i] =  call[i+1];
+			for (i=p-1;i < strlen(line); i++) {
+				line[i] =  line[i+1];
 			}
 			p--;
 		}
-		else if (c == KEY_DC && strlen(call) != 0) {		/* DELETE */ 
+		else if (c == KEY_DC && strlen(line) != 0) {		/* DELETE */ 
 			p++;
-			for (i=p-1;i < strlen(call); i++) {
-				call[i] =  call[i+1];
+			for (i=p-1;i < strlen(line); i++) {
+				line[i] =  line[i+1];
 			}
 			p--;
 		}
 		else if (c == KEY_LEFT && p != 0) {
 			p--;	
 		}
-		else if (c == KEY_RIGHT && p < strlen(call)) {
+		else if (c == KEY_RIGHT && p < strlen(line)) {
 			p++;
 		}
 		else if (c == KEY_HOME) {
 			p = 0;
 		}
 		else if (c == KEY_END) {
-			p = strlen(call);
+			p = strlen(line);
 		}
 		else if (c == KEY_IC) {						/* INS/OVR */
 			if (mode == 1) { 
@@ -718,7 +721,7 @@ static int readcall(WINDOW *win, int y, int x, char * call) {
 		}
 		
 		mvwaddstr(win,y,x,"                ");
-		mvwaddstr(win,y,x,call);
+		mvwaddstr(win,y,x,line);
 		wmove(win,y,x+p);
 		wrefresh(win);
 	}
@@ -917,8 +920,6 @@ static int read_config () {
 	int i=0;
 	int k=0;
 	int line=0;
-
-	char *xx;
 
 	if ((fh = fopen(rcfilename, "r")) == NULL) {
 		endwin();
@@ -1224,6 +1225,11 @@ static int save_config () {
 		else if (strstr(tmp,"callsign=")) {
 			fseek(fh, -(i+1), SEEK_CUR);
 			snprintf(tmp, i+1, "callsign=%-7s ", mycall);
+			fputs(tmp, fh);	
+		}
+		else if (strstr(tmp,"dspdevice=")) {
+			fseek(fh, -(i+1), SEEK_CUR);
+			snprintf(tmp, i+1, "dspdevice=%s ", dspdevice);
 			fputs(tmp, fh);	
 		}
 		else if (strstr(tmp,"waveform=")) {
@@ -1663,6 +1669,22 @@ void select_callbase () {
 	curs_set(TRUE);
 
 }
+
+
+
+void help () {
+		printf("qrq v%s  (c) 2006-2010 Fabian Kurz, DJ1YFK. "
+					"http://fkurz.net/ham/qrq.html\n", VERSION);
+		printf("High speed morse telegraphy trainer, similar to"
+					" RUFZ.\n\n");
+		printf("This is free software, and you are welcome to" 
+						" redistribute it\n");
+		printf("under certain conditions (see COPYING).\n\n");
+		printf("Start 'qrq' without any command line arguments for normal"
+					" operation.\n");
+		exit(0);
+}
+
 
 /* vim: noai:ts=4:sw=4 
 */
