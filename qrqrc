@@ -33,7 +33,10 @@ ctonefreq=600
 f6=0   
 
 # use fixed speed in the attempts, regardless of errors
-fixspeed=1     
+fixspeed=0     
 
+# allow unlimited attempts (instead of just 50 calls)
+unlimitedattempt=1
 
-
+# callbase
+# callbase=/tmp/test

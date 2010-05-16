@@ -19,7 +19,6 @@ Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */ 
 
-/* vim: set ts=4 */
 
 #include <pthread.h>			/* CW output will be in a separate thread */
 #include <ncurses.h>
@@ -28,6 +27,8 @@ Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <libgen.h>				/* basename */
 #include <ctype.h>
 #include <time.h> 
+#include <limits.h> 			/* PATH_MAX */
+#include <dirent.h>
 #include <math.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -70,9 +71,14 @@ const static char *codetable[] = {
 ".--","-..-","-.--","--..","-----",".----","..---","...--","....-",".....",
 "-....", "--...","---..","----."};
 
+/* List of available callbase files. Probably no need to do dynamic memory allocation for that list.... */
+
+static char cblist[100][PATH_MAX];
+
 static char mycall[15]="DJ1YFK";		/* mycall. will be read from qrqrc */
-static char dspdevice[80]="/dev/dsp";	/* will also be read from qrqrc */
+static char dspdevice[PATH_MAX]="/dev/dsp";	/* will also be read from qrqrc */
 static int score = 0;					/* qrq score */
+static int callnr;						/* nr of actual call in attempt */
 static int initialspeed=200;			/* initial speed. to be read from file*/
 static int speed=200;					/* current speed in cpm */
 static int maxspeed=0;
@@ -86,6 +92,9 @@ static int constanttone=0;              /* if 1 don't change the pitch */
 static int ctonefreq=800;               /* if constanttone=1 use this freq */
 static int f6=0;						/* f6 = 1: allow unlimited repeats */
 static int fixspeed=0;					/* keep speed fixed, regardless of err*/
+static int unlimitedattempt=0;			/* attempt with all calls  of the DB */
+static int attemptvalid=1;				/* 1 = not using any "cheats" */
+static unsigned long int nrofcalls=0;	
 
 long samplerate=44100;
 static long long_i;
@@ -100,11 +109,11 @@ static short buffer[88200];
 
 static AUDIO_HANDLE dsp_fd;
 
-static int display_toplist(WINDOW * win);
+static int display_toplist();
 static int calc_score (char * realcall, char * input, int speed, char * output);
-static int update_score(WINDOW * win);
-static int show_error (WINDOW * win, char * realcall, char * wrongcall); 
-static int clear_display(WINDOW * win);
+static int update_score();
+static int show_error (char * realcall, char * wrongcall); 
+static int clear_display();
 static int add_to_toplist(char * mycall, int score, int maxspeed);
 static int read_config();
 static int save_config();
@@ -116,6 +125,8 @@ static int check_toplist ();
 static int find_files ();
 static int statistics ();
 static int read_callbase ();
+static void find_callbases();
+static void select_callbase ();
 
 pthread_t cwthread;				/* thread for CW output, to enable
 								   keyboard reading at the same time */
@@ -126,6 +137,13 @@ char tlfilename[1024]="";			/* filename and path to toplist */
 char cbfilename[1024]="";			/* filename and path to callbase */
 
 char destdir[1024]="";
+
+
+/* create windows */
+WINDOW *top_w;					/* actual score					*/
+WINDOW *mid_w;					/* callsign history/mistakes	*/
+WINDOW *bot_w;					/* user input line				*/
+WINDOW *right_w;				/* highscore list/settings		*/
 
 int main (int argc, char *argv[]) {
 
@@ -142,14 +160,6 @@ int main (int argc, char *argv[]) {
 	char input[15]="";
 	int i=0,j=0;						/* counter etc. */
 	int f6pressed=0;
-	unsigned long nrofcalls=0;
-	int callnr;						/* nr of actual call in attempt */
-	FILE *fh;	
-	/* create windows */
-	WINDOW *top_w;					/* actual score					*/
-	WINDOW *mid_w;					/* callsign history/mistakes	*/
-	WINDOW *bot_w;					/* user input line				*/
-	WINDOW *right_w;				/* highscore list/settings		*/
 
 	if (argc > 1) {
 		printf("qrq v%s  (c) 2006-2010 Fabian Kurz, DJ1YFK. "
@@ -177,7 +187,7 @@ int main (int argc, char *argv[]) {
 
 	refresh();
 
-	/* search for 'toplist', 'qrqrc' and 'callbase' and put their locations
+	/* search for 'toplist', 'qrqrc' and callbase.qcb and put their locations
 	 * into tlfilename, rcfilename, cbfilename */
 	find_files();
 
@@ -202,6 +212,11 @@ int main (int argc, char *argv[]) {
 	/****** Reading configuration file ******/
 	printw("\nReading configuration file qrqrc \n");
 	read_config();
+
+	attemptvalid = 1;
+	if (f6 || fixspeed || unlimitedattempt) {
+		attemptvalid = 0;	
+	}
 
 	/****** Reading callsign database ******/
 	printw("\nReading callsign database... ");
@@ -238,7 +253,7 @@ while (status == 1) {
 	mvwaddstr(top_w,2,1, "Homepage and Toplist: http://fkurz.net/ham/qrq.html"
 					"     ");
 
-	clear_display(mid_w);
+	clear_display();
 	wattron(mid_w,A_BOLD);
 	mvwaddstr(mid_w,1,1, "Usage:");
 	mvwaddstr(mid_w,10,2, "F6                          F10       ");
@@ -258,11 +273,11 @@ while (status == 1) {
 	mvwaddstr(right_w,1, 6, "Toplist");
 	wattroff(right_w,A_BOLD);
 
-	display_toplist(right_w);
+	display_toplist();
 
-	p=0;						/* cursor to start position */	
+	p=0;						/* cursor to start position */
 	wattron(bot_w,A_BOLD);
-	mvwaddstr(bot_w, 1, 1, "Please enter your callsign:");
+	mvwaddstr(bot_w, 1, 1, "Please enter your callsign:                      ");
 	wattroff(bot_w,A_BOLD);
 	
 	wrefresh(top_w);
@@ -302,11 +317,11 @@ while (status == 1) {
 		mycall[7] = '\0';
 	}
 	
-	clear_display(mid_w);
+	clear_display();
 	wrefresh(mid_w);
 	
 	/* update toplist (highlight may change) */
-	display_toplist(right_w);
+	display_toplist();
 
 	mvwprintw(top_w,1,1,"                                      ");
 	mvwprintw(top_w,2,1,"                                               ");
@@ -314,16 +329,16 @@ while (status == 1) {
 	wattron(top_w,A_BOLD);
 	mvwprintw(top_w,1,11, "%s", mycall);
 	wattroff(top_w,A_BOLD);
-	update_score(top_w);
+	update_score();
 	wrefresh(top_w);
 
 
 	/* Reread callbase */
-	(void) read_callbase();
+	nrofcalls = read_callbase();
 
-	/****** send 50 calls, ask for input, score ******/
+	/****** send 50 or unlimited calls, ask for input, score ******/
 	
-	for (callnr=1; callnr < 51; callnr++) {
+	for (callnr=1; callnr < (unlimitedattempt ? nrofcalls : 51); callnr++) {
 		/* Make sure to wait for the cwthread of the previous callsign, if
 		 * neccessary. */
 		pthread_join(cwthread, NULL);
@@ -335,7 +350,7 @@ while (status == 1) {
 
 		/* only relevant for callbases with less than 50 calls */
 		if (nrofcalls == callnr) { 		/* Only one call left!" */
-				callnr = 50;			/* Get out after next one */
+				callnr =  51; 			/* Get out after next one */
 		}
 
 
@@ -350,7 +365,7 @@ while (status == 1) {
 		}
 
 		mvwprintw(bot_w,1,1,"                                      ");
-		mvwprintw(bot_w, 1, 1, "%2d/50", callnr);	
+		mvwprintw(bot_w, 1, 1, "%3d/%s", callnr, unlimitedattempt ? "-" : "50");	
 		wrefresh(bot_w);	
 		tmp[0]='\0';
 
@@ -373,9 +388,9 @@ while (status == 1) {
 		}
 		tmp[0]='\0';	
 		score += calc_score(calls[i], input, speed, tmp);
-		update_score(top_w);
+		update_score();
 		if (strcmp(tmp, "*")) {			/* made an error */
-				show_error(mid_w, calls[i], tmp);
+				show_error(calls[i], tmp);
 		}
 		input[0]='\0';
 		calls[i] = NULL;
@@ -398,7 +413,7 @@ while (status == 1) {
 
 /* status == 2. Change parameters */
 while (status == 2) {
-	clear_display(mid_w);
+	clear_display();
 
 	switch (waveform) {
 		case SINE:
@@ -416,8 +431,8 @@ while (status == 2) {
 	curs_set(0);
 	wattron(mid_w,A_BOLD);
 	mvwaddstr(mid_w,1,1, "Configuration:          Value                Change");
-	mvwprintw(mid_w,12,2, "      F6                    F10            ");
-	mvwprintw(mid_w,13,2, "      F2");
+	mvwprintw(mid_w,14,2, "      F6                    F10            ");
+	mvwprintw(mid_w,15,2, "      F2");
 	wattroff(mid_w, A_BOLD);
 	mvwprintw(mid_w,2,2, "Initial Speed:         %3d CpM / %3d WpM" 
 					"    up/down", initialspeed, initialspeed/5);
@@ -435,14 +450,16 @@ while (status == 2) {
 					"                  f", (f6 ? "yes" : "no"));
 	mvwprintw(mid_w,9,2, "Fixed CW speed*:       %-3s"
 					"                  s", (fixspeed ? "yes" : "no"));
-	mvwprintw(mid_w,10,2, "Callsign database:     %-15s"
-					"      d", basename(cbfilename));
-	mvwprintw(mid_w,12,2, "Press");
-	mvwprintw(mid_w,12,11, "to play sample CW,");
-	mvwprintw(mid_w,12,34, "to go back.");
-	mvwprintw(mid_w,13,2, "Press");
-	mvwprintw(mid_w,13,11, "to save config permanently.");
-	mvwprintw(mid_w,15,13, "* Makes scores not eligible for toplist");
+	mvwprintw(mid_w,10,2, "Unlimited attempt*:    %-3s"
+					"                  u", (unlimitedattempt ? "yes" : "no"));
+	mvwprintw(mid_w,11,2, "Callsign database:     %-15s"
+					"      d (%d)", basename(cbfilename),nrofcalls);
+	mvwprintw(mid_w,14,2, "Press");
+	mvwprintw(mid_w,14,11, "to play sample CW,");
+	mvwprintw(mid_w,14,34, "to go back.");
+	mvwprintw(mid_w,15,2, "Press");
+	mvwprintw(mid_w,15,11, "to save config permanently.");
+	mvwprintw(bot_w,1,11, "* Makes scores not eligible for toplist");
 	wrefresh(mid_w);
 	wrefresh(bot_w);
 	
@@ -502,6 +519,9 @@ while (status == 2) {
 		case 's':
 				fixspeed = (fixspeed ? 0 : 1);
 			break;
+		case 'u':
+				unlimitedattempt = (unlimitedattempt ? 0 : 1);
+			break;
 		case 259:							/* arrow key up */
 			initialspeed += 10;
 			break;
@@ -527,7 +547,7 @@ while (status == 2) {
 			break;
 		case KEY_F(2):
 			save_config();	
-			mvwprintw(mid_w,14,2, "Config saved!");
+			mvwprintw(mid_w,15,39, "Config saved!");
 			wrefresh(mid_w);
 			sleep(1);	
 			break;
@@ -544,27 +564,28 @@ while (status == 2) {
 	}
 
 	speed = initialspeed;
+
+	attemptvalid = 1;
+	if (f6 || fixspeed || unlimitedattempt) {
+		attemptvalid = 0;	
+	}
 }
 
 while (status == 3) {
 
-	clear_display(mid_w);
+	clear_display();
 
 	wattron(mid_w,A_BOLD);
 	mvwaddstr(mid_w,1,1, "Change Callsign Database");
 	wattroff(mid_w,A_BOLD);
-	mvwaddstr(mid_w,3,1, ".qrq files found (in "DESTDIR"/share/qrq/ and ~/.qrq/):");
-	
-//	find_callbases(cblist);
+	mvwaddstr(mid_w,3,1, ".qcb files found (in "DESTDIR"/share/qrq/ and ~/.qrq/):");
 
-
-
+	/* populate cblist */	
+	find_callbases();
+	/* selection dialog */
+	select_callbase();
 	
 	wrefresh(mid_w);
-
-	getch();
-
-
 	status = 2;	/* back to config menu */
 }
 
@@ -662,6 +683,16 @@ static int readcall(WINDOW *win, int y, int x, char * call) {
 				mvwaddstr(win,1,55,"INS");
 			}
 		}
+		else if (c == KEY_PPAGE && callnr && !attemptvalid) {
+			speed += 5;
+			update_score();
+			wrefresh(top_w);
+		}
+		else if (c == KEY_NPAGE && callnr && !attemptvalid) {
+			if (speed > 20) speed -= 5;
+			update_score();
+			wrefresh(top_w);
+		}
 		else if (c == KEY_F(5)) {
 			return 5;
 		}
@@ -696,7 +727,7 @@ static int readcall(WINDOW *win, int y, int x, char * call) {
 }
 
 /* Read toplist and diplay first 10 entries */
-static int display_toplist (WINDOW * win) {
+static int display_toplist () {
 	FILE * fh;
 	int i=0;
 	char tmp[35]="";
@@ -712,20 +743,23 @@ static int display_toplist (WINDOW * win) {
 		if (fgets(tmp, 34, fh) != NULL) {
 			tmp[17]='\0';
 			if (strstr(tmp, mycall)) {		/* highlight own call */
-				wattron(win, A_BOLD);
+				wattron(right_w, A_BOLD);
 			}
-			mvwaddstr(win,i+2, 2, tmp);
-			wattroff(win, A_BOLD);
+			mvwaddstr(right_w,i+2, 2, tmp);
+			wattroff(right_w, A_BOLD);
 		}
 	}
 	fclose(fh);
-	wrefresh(win);
+	wrefresh(right_w);
 	return 0;
 }
 
 /* calculate score depending on number of errors and speed.
  * writes the correct call and entered call with highlighted errors to *output
- * and returns the score for this call*/
+ * and returns the score for this call
+ *
+ * in training modes (unlimited attempts, f6, fixed speed), no points.
+ * */
 static int calc_score (char * realcall, char * input, int spd, char * output) {
 	int i,x,m=0;
 
@@ -736,7 +770,12 @@ static int calc_score (char * realcall, char * input, int spd, char * output) {
 		output[1]='\0';	
 		if (speed > maxspeed) {maxspeed = speed;}
 		if (!fixspeed) speed += 10;
-		return 2*x*spd;						/* score */
+		if (attemptvalid) {
+			return 2*x*spd;						/* score */
+		}
+		else {
+			return 0;
+		}
 	}
 	else {									/* assemble error string */
 		errornr += 1;
@@ -752,8 +791,9 @@ static int calc_score (char * realcall, char * input, int spd, char * output) {
 		}
 		output[i]='\0';
 		if ((speed > 29) && !fixspeed) {speed -= 10;}
+
 		/* score when 1-3 mistakes was made */
-		if (m < 4) {
+		if ((m < 4) && attemptvalid) {
 			return (int) (2*x*spd)/(5*m);
 		}
 		else {return 0;};
@@ -761,21 +801,26 @@ static int calc_score (char * realcall, char * input, int spd, char * output) {
 }
 
 /* print score, current speed and max speed to window */
-static int update_score(WINDOW * win) {
-	mvwaddstr(win,1,20, "Score:                         ");
-	mvwaddstr(win,2,20, "Speed:     CpM/    WpM, Max:    /  ");
-	mvwprintw(win, 1, 27, "%6d", score);	
-	mvwprintw(win, 2, 27, "%3d", speed);	
-	mvwprintw(win, 2, 35, "%3d", speed/5);	
-	mvwprintw(win, 2, 49, "%3d", maxspeed);	
-	mvwprintw(win, 2, 54, "%3d", maxspeed/5);	
-	wrefresh(win);
+static int update_score() {
+	mvwaddstr(top_w,1,20, "Score:                         ");
+	mvwaddstr(top_w,2,20, "Speed:     CpM/    WpM, Max:    /  ");
+	if (attemptvalid) {
+		mvwprintw(top_w, 1, 27, "%6d", score);	
+	}
+	else {
+		mvwprintw(top_w, 1, 27, "[training mode]", score);	
+	}
+	mvwprintw(top_w, 2, 27, "%3d", speed);	
+	mvwprintw(top_w, 2, 35, "%3d", speed/5);	
+	mvwprintw(top_w, 2, 49, "%3d", maxspeed);	
+	mvwprintw(top_w, 2, 54, "%3d", maxspeed/5);	
+	wrefresh(top_w);
 	return 0;
 }
 
 /* display the correct callsign and what the user entered, with mistakes
  * highlighted. */
-static int show_error (WINDOW * win, char * realcall, char * wrongcall) {
+static int show_error (char * realcall, char * wrongcall) {
 	int x=2;
 	int y = errornr;
 	int i;
@@ -783,7 +828,7 @@ static int show_error (WINDOW * win, char * realcall, char * wrongcall) {
 	/* Screen is full of errors. Remove them and start at the beginning */
 	if (errornr == 31) {	
 		for (i=1;i<16;i++) {
-			mvwaddstr(win,i,2,"                                        "
+			mvwaddstr(mid_w,i,2,"                                        "
 							 "          ");
 		}
 		errornr = y = 1;
@@ -794,16 +839,16 @@ static int show_error (WINDOW * win, char * realcall, char * wrongcall) {
 		x=30; y = (errornr % 16)+1;
 	}
 
-	mvwprintw(win,y,x, "%-13s %-13s", realcall, wrongcall);
-	wrefresh(win);		
+	mvwprintw(mid_w,y,x, "%-13s %-13s", realcall, wrongcall);
+	wrefresh(mid_w);		
 	return 0;
 }
 
 /* clear error display */
-static int clear_display(WINDOW * win) {
+static int clear_display() {
 	int i;
 	for (i=1;i<16;i++) {
-		mvwprintw(win,i,1,"                                 "
+		mvwprintw(mid_w,i,1,"                                 "
 										"                        ");
 	}
 	return 0;
@@ -822,7 +867,7 @@ static int add_to_toplist(char * mycall, int score, int maxspeed) {
 	int pos = 0;		/* position where first score < our score appears */
 	int timestamp = 0;
 
-	/* unlikely, but might happen */
+	/* For the training modes */
 	if (score == 0) {
 		return 0;
 	}
@@ -860,7 +905,11 @@ static int add_to_toplist(char * mycall, int score, int maxspeed) {
 }
 
 
-/***** Read config file *****/
+/* Read config file 
+ *
+ * TODO contains too much copypasta. write proper function to parse a key=value
+ *
+ * */
 
 static int read_config () {
 	FILE *fh;
@@ -868,6 +917,9 @@ static int read_config () {
 	int i=0;
 	int k=0;
 	int line=0;
+
+	char *xx;
+
 	if ((fh = fopen(rcfilename, "r")) == NULL) {
 		endwin();
 		fprintf(stderr, "Unable to open config file %s!\n", rcfilename);
@@ -877,8 +929,10 @@ static int read_config () {
 		i=0;
 		line++;
 		tmp[strlen(tmp)-1]='\0';
-		/* find callsign, speed etc */
-		if(strstr(tmp,"callsign=")) {
+		/* find callsign, speed etc. 
+		 * only allow if the lines are beginning at zero, so stuff can be
+		 * commented out easily; return value if strstr must point to tmp*/
+		if(tmp == strstr(tmp,"callsign=")) {
 			while (isalnum(tmp[i] = toupper(tmp[9+i]))) {
 				i++;
 			}
@@ -892,7 +946,7 @@ static int read_config () {
 								"Using default >%s<.\n", line, tmp, mycall);
 			}
 		}
-		else if (strstr(tmp,"initialspeed=")) {
+		else if (tmp == strstr(tmp,"initialspeed=")) {
 			while (isdigit(tmp[i] = tmp[13+i])) {
 				i++;
 			}
@@ -907,7 +961,7 @@ static int read_config () {
 								" Using default %d.\n",line,  i, initialspeed);
 			}
 		}
-		else if (strstr(tmp,"dspdevice=")) {
+		else if (tmp == strstr(tmp,"dspdevice=")) {
 			while (isgraph(tmp[i] = tmp[10+i])) {
 				i++;
 			}
@@ -921,7 +975,7 @@ static int read_config () {
 								"Using default >%s<.\n", line, tmp, dspdevice);
 			}
 		}
-		else if (strstr(tmp, "risetime=")) {
+		else if (tmp == strstr(tmp, "risetime=")) {
 			while (isdigit(tmp[i] = tmp[9+i])) {
 				i++;	
 			}
@@ -929,7 +983,7 @@ static int read_config () {
 			rise = atoi(tmp);
 			printw("  line  %2d: risetime: %d\n", line, rise);
 		}
-		else if (strstr(tmp, "falltime=")) {
+		else if (tmp == strstr(tmp, "falltime=")) {
 			while (isdigit(tmp[i] = tmp[9+i])) {
 				i++;	
 			}
@@ -937,7 +991,7 @@ static int read_config () {
 			fall = atoi(tmp);
 			printw("  line  %2d: falltime: %d\n", line, fall);
 		}
-		else if (strstr(tmp, "waveform=")) {
+		else if (tmp == strstr(tmp, "waveform=")) {
 			if (isdigit(tmp[i] = tmp[9+i])) {	/* read 1 char only */
 				tmp[++i]='\0';
 				waveform = atoi(tmp);
@@ -951,7 +1005,7 @@ static int read_config () {
 				waveform = SINE;
 			}
 		}
-		else if (strstr(tmp, "constanttone=")) {
+		else if (tmp == strstr(tmp, "constanttone=")) {
 			while (isdigit(tmp[i] = tmp[13+i])) {
 				i++;    
 			}
@@ -967,7 +1021,7 @@ static int read_config () {
 				printw("  line  %2d: constanttone: %d\n", line, constanttone);
 			}
         }
-        else if (strstr(tmp, "ctonefreq=")) {
+        else if (tmp == strstr(tmp, "ctonefreq=")) {
 			while (isdigit(tmp[i] = tmp[10+i])) {
             	i++;    
 			}
@@ -983,20 +1037,42 @@ static int read_config () {
 				printw("  line  %2d: ctonefreq: %d\n", line, ctonefreq);
 			}
 		}
-		else if (strstr(tmp, "f6=")) {
+		else if (tmp == strstr(tmp, "f6=")) {
 			f6=0;
 			if (tmp[3] == '1') {
 				f6 = 1;
 			}
 			printw("  line  %2d: unlimited f6: %s\n", line, (f6 ? "yes":"no"));
         }
-		else if (strstr(tmp, "fixspeed=")) {
+		else if (tmp == strstr(tmp, "fixspeed=")) {
 			fixspeed=0;
 			if (tmp[9] == '1') {
 				fixspeed = 1;
 			}
 			printw("  line  %2d: fixed speed:  %s\n", line, (fixspeed ? "yes":"no"));
         }
+		else if (tmp == strstr(tmp, "unlimitedattempt=")) {
+			unlimitedattempt=0;
+			if (tmp[17] == '1') {
+				unlimitedattempt= 1;
+			}
+			printw("  line  %2d: unlim. att.:  %s\n", line, (unlimitedattempt ? "yes":"no"));
+        }
+		else if (tmp == strstr(tmp,"callbase=")) {
+			fprintf(stderr, "%d\n", i);
+			while (isgraph(tmp[i] = tmp[9+i])) {
+				i++;
+			}
+			tmp[i]='\0';
+			if (strlen(tmp) > 1) {
+				strcpy(cbfilename,tmp);
+				printw("  line  %2d: callbase:  >%s<\n", line, cbfilename);
+			}
+			else {
+				printw("  line  %2d: callbase:  >%s< invalid. "
+								"Using default >%s<.\n", line, tmp, cbfilename);
+			}
+		}
 	}
 
 	printw("Finished reading qrqrc.\n");
@@ -1091,10 +1167,10 @@ static int tonegen (int freq, int len, int waveform) {
 		}
 
 
-		if (x < rt) { val *= sin(PI*x/(2.0*rt)); }		/* rising edge */
+		if (x < rt) { val *= pow(sin(PI*x/(2.0*rt)),2); }		/* rising edge */
 
 		if (x > (len-ft)) {								/* falling edge */
-				val *= sin(2*PI*(x-(len-ft)+ft)/(4*ft)); 
+				val *= pow(sin(2*PI*(x-(len-ft)+ft)/(4*ft)),2); 
 		}
 		
 		out = (int) (val * 32500.0);
@@ -1104,6 +1180,7 @@ static int tonegen (int freq, int len, int waveform) {
 	return 0;
 }
 
+/* TODO: Remove copypasta, write small functions to do it */
 
 static int save_config () {
 	FILE *fh;
@@ -1162,6 +1239,11 @@ static int save_config () {
 		else if (strstr(tmp,"fixspeed=")) {
 			fseek(fh, -(i+1), SEEK_CUR);
 			snprintf(tmp, i+1, "fixspeed=%d ", fixspeed);
+			fputs(tmp, fh);	
+		}
+		else if (strstr(tmp,"unlimitedattempt=")) {
+			fseek(fh, -(i+1), SEEK_CUR);
+			snprintf(tmp, i+1, "unlimitedattempt=%d ", unlimitedattempt);
 			fputs(tmp, fh);	
 		}
 	}
@@ -1227,7 +1309,7 @@ static int check_toplist () {
 
 
 
-/* See where our files are. We need 'callbase', 'qrqrc' and 'toplist'.
+/* See where our files are. We need 'callbase.qcb', 'qrqrc' and 'toplist'.
  * The can be: 
  * 1) In the current directory -> use them
  * 2) In ~/.qrq/  -> use toplist and qrqrc from there and callbase from
@@ -1247,7 +1329,7 @@ static int find_files () {
 	
 	if (((fh = fopen("qrqrc", "r")) == NULL) ||
 		((fh = fopen("toplist", "r")) == NULL) ||
-		((fh = fopen("callbase", "r")) == NULL)) {
+		((fh = fopen("callbase.qcb", "r")) == NULL)) {
 		
 		homedir = getenv("HOME");
 		
@@ -1272,13 +1354,13 @@ static int find_files () {
 			strcpy(tmp_tlfilename, destdir);
 			strcat(tmp_tlfilename, "/share/qrq/toplist");
 			strcpy(tmp_cbfilename, destdir);
-			strcat(tmp_cbfilename, "/share/qrq/callbase");
+			strcat(tmp_cbfilename, "/share/qrq/callbase.qcb");
 
 			if (((fh = fopen(tmp_rcfilename, "r")) == NULL) ||
 				((fh = fopen(tmp_tlfilename, "r")) == NULL) ||
 				 ((fh = fopen(tmp_cbfilename, "r")) == NULL)) {
 				printw("Sorry: Couldn't find 'qrqrc', 'toplist' and"
-			   			" 'callbase' anywhere. Exit.\n");
+			   			" 'callbase.qcb' anywhere. Exit.\n");
 				getch();
 				endwin();
 				exit(EXIT_FAILURE);
@@ -1337,14 +1419,14 @@ static int find_files () {
 			strcat(tlfilename, homedir);
 			strcat(tlfilename, "/.qrq/toplist");
 			strcpy(cbfilename, destdir);
-			strcat(cbfilename, "/share/qrq/callbase");
+			strcat(cbfilename, "/share/qrq/callbase.qcb");
 		}
 	}
 	else {
 		printw("... found in current directory.\n");
 		strcpy(rcfilename, "qrqrc");
 		strcpy(tlfilename, "toplist");
-		strcpy(cbfilename, "callbase");
+		strcpy(cbfilename, "callbase.qcb");
 	}
 	refresh();
 	fclose(fh);
@@ -1428,6 +1510,12 @@ int read_callbase () {
 	}
 	maxlen++;
 
+	if (!nr) {
+		endwin();
+		printf("\nError: Callsign database empty, no calls read. Exiting.\n");
+		exit(EXIT_FAILURE);
+	}
+
 	/* allocate memory for calls array, free if needed */
 
 	free(calls);
@@ -1464,14 +1552,117 @@ int read_callbase () {
 	}
 	fclose(fh);
 
-	if (!nr) {
-		printw("\nError: Callsign database emtpy, no calls read. Exiting.\n");
-		getch(); endwin();
-		exit(EXIT_FAILURE);
-	}
 
 	return nr;
 
 }
 
+void find_callbases () {
+	DIR *dir;
+	struct dirent *dp;
+	char tmp[PATH_MAX];
+	char path[3][PATH_MAX];
+	int i=0,j=0,k=0;
 
+	strcpy(path[0], getenv("PWD"));
+	strcat(path[0], "/");
+	strcpy(path[1], getenv("HOME"));
+	strcat(path[1], "/.qrq/");
+	strcpy(path[2], DESTDIR"/share/qrq/");
+
+	for (i=0; i < 100; i++) {
+		strcpy(cblist[i], "");
+	}
+
+	/* foreach paths...  */
+	for (k = 0; k < 3; k++) {
+
+		if (!(dir = opendir(path[k]))) {
+			continue;
+		}
+	
+		while ((dp = readdir(dir))) {
+			strcpy(tmp, dp->d_name);
+			i = strlen(tmp);
+			/* find *.qcb files ...  */
+			if (i>4 && tmp[i-1] == 'b' && tmp[i-2] == 'c' && tmp[i-3] == 'q') {
+				strcpy(cblist[j], path[k]);
+				strcat(cblist[j], tmp);
+				j++;
+			}
+		}
+	} /* for paths */
+}
+
+
+
+void select_callbase () {
+	int i = 0, j = 0, k = 0;
+	int c = 0;		/* cursor position   */
+	int p = 0;		/* page a 10 entries */
+
+
+	curs_set(FALSE);
+
+	/* count files */
+	while (strcmp(cblist[i], "")) i++;
+
+	if (!i) {
+		mvwprintw(mid_w,10,4, "No qcb-files found!");
+		wrefresh(mid_w);
+		sleep(1);
+		return;
+	}
+
+	/* loop for key unput */
+	while (1) {
+
+	/* cls */
+	for (j = 5; j < 16; j++) {
+			mvwprintw(mid_w,j,2, "                                         ");
+	}
+
+	/* display 10 files, highlight cursor position */
+	for (j = p*10; j < (p+1)*10; j++) {
+		if (j <= i) {
+			mvwprintw(mid_w,5+(j - p*10 ),2, "  %s       ", cblist[j]);
+		}
+		if (c == j) {						/* cursor */
+			mvwprintw(mid_w,5+(j - p*10),2, ">");
+		}
+	}
+	
+	wrefresh(mid_w);
+
+	k = getch();
+
+	switch ((int) k) {
+		case KEY_UP:
+			c = (c > 0) ? (c-1) : c;
+			if (!((c+1) % 10)) {	/* scroll down */
+				p = (p > 0) ? (p-1) : p;
+			}
+			break;
+		case KEY_DOWN:
+			c = (c < (i-1)) ? (c+1) : c;
+			if (!(c % 10)) {	/* scroll down */
+				p++;
+			}
+			break;
+		case '\n':
+			strcpy(cbfilename, cblist[c]);
+			nrofcalls = read_callbase();
+			return;	
+			break;
+	}
+
+	wrefresh(mid_w);
+
+	} /* while 1 */
+
+	curs_set(TRUE);
+
+}
+
+/* vim: noai:ts=4:sw=4 
+*/

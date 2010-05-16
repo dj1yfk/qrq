@@ -1,4 +1,4 @@
-QRQ - yet another CW trainer for Linux/Unix - Version 0.1.5
+QRQ - yet another CW trainer for Linux/Unix - Version 0.2.0
 
 Project website: http://fkurz.net/ham/qrq.html
 -----------------------------------------------------------------------------
@@ -7,8 +7,8 @@ qrq is an open source morse telegraphy trainer, similar to the classic DOS
 version of Rufz by DL4MM, for Linux and Unix operating systems.
 
 It's not intended for learning telegraphy (have a look at radio.linux.org.au
-for CW learning software), but to improve the ability to copy callsigns at high
-speeds, as needed for example for Contesting. 
+for CW learning software or check out http://lcwo.net/), but to improve the
+ability to copy callsigns at high speeds, as needed for example for Contesting. 
 
 -----------------------------------------------------------------------------
 
@@ -19,7 +19,7 @@ INSTALL:
 Compiles qrq.  Optionally, you can compile against the OpenAL audio
 library, instead of OSS.  This will create the executable
 file, 'qrq' in the current directory. To run, qrq only needs the files
-'qrqrc', 'toplist', and 'callbase', which are also in the current
+'qrqrc', 'toplist', and 'callbase.qcb', which are also in the current
 directory. 
 
 If you are building for OSX, you must compile against OpenAL, which is
@@ -75,6 +75,11 @@ The toplist is not protected by any kind of checksum, it bases on your honesty.
 As of version 0.0.7, the toplist file also includes a timestamp of the attempt,
 which makes it possible to keep track of your training progress. Pressing F7
 generates a graph score vs. date. Gnuplot required.
+
+Options can be changed in the config file qrqrc or via the options menu (F5).
+As of version 0.2.0, some additional training modes are available, which allow
+e.g. unlimited usage of F6 (call repetition) and attempts that are longer than
+the normal 50 calls.
 
 A small Perl script, qrqscore, to synchronize the online-toplist
 (http://fkurz.net/ham/qrqtop.php) with your local toplist is included as of

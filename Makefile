@@ -1,6 +1,6 @@
 # qrq Makefile -- Fabian Kurz, DJ1YFK -- http://fkurz.net/ham/qrq.html
 
-VERSION=0.1.5
+VERSION=0.2.0
 DESTDIR?=/usr
 
 # set to YES if you want to use OpenAL instead of OSS
@@ -41,7 +41,7 @@ qrq: $(OBJECTS)
 	g++ -pthread -Wall -lm -lncurses $(LDFLAGS) -o $@ $^
 	
 .c.o:
-	gcc $(CFLAGS) -c $<
+	gcc -Wall $(CFLAGS) -c $<
 
 .cpp.o:
 	g++ $(CFLAGS) -c $<
@@ -57,7 +57,7 @@ install: qrq
 	install    -m 0755 qrq					qrq.app/Contents/MacOS/
 	install    -m 0755 qrqscore				qrq.app/Contents/MacOS/
 	install    -m 0644 qrq.1				qrq.app/Contents/Resources/share/man/man1/
-	install    -m 0644 callbase				qrq.app/Contents/Resources/share/qrq/
+	install    -m 0644 callbase.qcb				qrq.app/Contents/Resources/share/qrq/
 	install    -m 0644 qrqrc				qrq.app/Contents/Resources/share/qrq/
 	install    -m 0644 toplist				qrq.app/Contents/Resources/share/qrq/
 	install    -m 0644 OSXExtras/qrq.icns	qrq.app/Contents/Resources/
@@ -70,22 +70,22 @@ uninstall:
 else
 
 install: qrq
-	install -d -v               $(DESTDIR)/share/qrq/
-	install -d -v               $(DESTDIR)/share/man/man1/
-	install -d -v               $(DESTDIR)/bin/
-	install -s -m 0755 qrq      $(DESTDIR)/bin/
-	install    -m 0755 qrqscore $(DESTDIR)/bin/
-	install    -m 0644 qrq.1    $(DESTDIR)/share/man/man1/
-	install    -m 0644 callbase $(DESTDIR)/share/qrq/
-	install    -m 0644 qrqrc    $(DESTDIR)/share/qrq/
-	install    -m 0644 toplist  $(DESTDIR)/share/qrq/
+	install -d -v                   $(DESTDIR)/share/qrq/
+	install -d -v                   $(DESTDIR)/share/man/man1/
+	install -d -v                   $(DESTDIR)/bin/
+	install -s -m 0755 qrq          $(DESTDIR)/bin/
+	install    -m 0755 qrqscore     $(DESTDIR)/bin/
+	install    -m 0644 qrq.1        $(DESTDIR)/share/man/man1/
+	install    -m 0644 callbase.qcb $(DESTDIR)/share/qrq/
+	install    -m 0644 qrqrc        $(DESTDIR)/share/qrq/
+	install    -m 0644 toplist      $(DESTDIR)/share/qrq/
 
 	
 uninstall:
 	rm -f $(DESTDIR)/bin/qrq
 	rm -f $(DESTDIR)/bin/qrqscore
 	rm -f $(DESTDIR)/share/man/man1/qrq.1
-	rm -f $(DESTDIR)/share/qrq/callbase
+	rm -f $(DESTDIR)/share/qrq/callbase.qcb
 	rm -f $(DESTDIR)/share/qrq/qrqrc
 	rm -f $(DESTDIR)/share/qrq/toplist
 	rmdir $(DESTDIR)/share/qrq/
@@ -103,7 +103,7 @@ dist:
 	rm -f releases/qrq-$(VERSION).tar.gz
 	rm -rf releases/qrq-$(VERSION)
 	mkdir qrq-$(VERSION)
-	cp qrq.png qrqscore qrq.c oss.c oss.h qrqrc callbase toplist CHANGELOG README \
+	cp qrq.png qrqscore qrq.c oss.c oss.h qrqrc callbase.qcb toplist ChangeLog README \
 			COPYING qrq.1 Makefile qrq-$(VERSION)
 	cp OpenAlImp.h OpenAlImp.cpp OpenAlStream.cpp OpenAlStream.h qrq-$(VERSION)
 	cp -r OSXExtras qrq-$(VERSION)
