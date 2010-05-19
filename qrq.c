@@ -428,10 +428,10 @@ while (status == 2) {
 	wattroff(mid_w, A_BOLD);
 	mvwprintw(mid_w,2,2, "Initial Speed:         %3d CpM / %3d WpM" 
 					"    up/down", initialspeed, initialspeed/5);
-	mvwprintw(mid_w,3,2, "CW risetime (ms):      %d" 
-					"                    +/-", rise);
-	mvwprintw(mid_w,4,2, "CW falltime (ms):      %d" 
-					"                    ;/:", fall);
+	mvwprintw(mid_w,3,2, "CW risetime (ms):      %d %s" 
+					"        +/-", rise, (rise < 0) ? "(adaptive)" : "           ");
+	mvwprintw(mid_w,4,2, "CW falltime (ms):      %d %s" 
+					"        :/;", fall, (fall < 0) ? "(adaptive)" : "           ");
 	mvwprintw(mid_w,5,2, "Callsign:              %-14s" 
 					"       c", mycall);
 	mvwprintw(mid_w,6,2, "CW pitch (0 = random): %-4d"
@@ -466,7 +466,7 @@ while (status == 2) {
 			}
 			break;
 		case '-':
-			if (rise > 0) {
+			if (rise >= 0) {
 				rise--;
 			}
 			break;
@@ -476,7 +476,7 @@ while (status == 2) {
 			}
 			break;
 		case ':':
-			if (fall > 0) {
+			if (fall >= 0) {
 				fall--;
 			}
 			break;
@@ -977,7 +977,7 @@ static int read_config () {
 			}
 		}
 		else if (tmp == strstr(tmp, "risetime=")) {
-			while (isdigit(tmp[i] = tmp[9+i])) {
+			while (isdigit(tmp[i] = tmp[9+i]) || ((tmp[i] = tmp[9+i])) == '-') {
 				i++;	
 			}
 			tmp[i]='\0';
@@ -985,7 +985,7 @@ static int read_config () {
 			printw("  line  %2d: risetime: %d\n", line, rise);
 		}
 		else if (tmp == strstr(tmp, "falltime=")) {
-			while (isdigit(tmp[i] = tmp[9+i])) {
+			while (isdigit(tmp[i] = tmp[9+i]) || ((tmp[i] = tmp[9+i])) == '-') {
 				i++;	
 			}
 			tmp[i]='\0';
@@ -1098,10 +1098,19 @@ static void *morse(void *arg) {
 
 	ms = (int) 60000/(speed * 10);
 	
-	/* rise == risetime in milliseconds, we need nr. of samples (rt) */
-	rt = (int) (samplerate * (rise/1000.0));
-	ft = (int) (samplerate * (fall/1000.0));
-	
+	/* rise == risetime in milliseconds, we need nr. of samples (rt) 
+	 * rise = -1 => adaptive to 10% of dot-length
+	 * */
+	if (rise >= 0) 
+		rt = (int) (samplerate * (rise/1000.0));
+	else 
+		rt = (int) (0.1 * samplerate * (ms/1000.0));
+
+	if (fall >= 0) 
+		ft = (int) (samplerate * (fall/1000.0));
+	else 
+		ft = (int) (0.1 * samplerate * (ms/1000.0));
+
 	for (i = 0; i < strlen(text); i++) {
 		c = text[i];
 		if (isalpha(c)) {
