@@ -1214,7 +1214,7 @@ static int tonegen (int freq, int len, int waveform) {
 				val *= pow(sin(2*PI*(x-(len-ed)+ed)/(4*ed)),2); 
 		}
 		
-		fprintf(stderr, "%f\n", val);
+		//fprintf(stderr, "%f\n", val);
 		out = (int) (val * 32500.0);
 		out = out + (out<<16);				/* add second channel */
 		write_audio(dsp_fd, &out, sizeof(out));
