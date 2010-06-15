@@ -6,13 +6,14 @@
 
 callsign=DJ1YFK      # your callsign
 initialspeed=400     # initial speed in LpM (5 LpM = 1 WPM)
+mincharspeed=200     # minimum character speed. below, Farnsworth is used
 dspdevice=/dev/dsp   # your DSP device, usually /dev/dsp, /dev/dsp0 ...
 
 # risetime and falltime for shaping the CW sigs (in milliseconds). recommended
 # values: 1..5 see http://fkurz.net/ham/dah.png for an illustration.
 # if you have no clue what is is, just leave it ;-) 
-risetime=3  
-falltime=3  
+risetime=2 
+falltime=9  
 
 # waveform. Can be 1 = Sine, 2 = Sawtooth, 3 = Square wave
 # Default: Sine. Sawtooth and square wave contain more overtones and may be

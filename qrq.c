@@ -80,6 +80,7 @@ static char dspdevice[PATH_MAX]="/dev/dsp";	/* will also be read from qrqrc */
 static int score = 0;					/* qrq score */
 static int callnr;						/* nr of actual call in attempt */
 static int initialspeed=200;			/* initial speed. to be read from file*/
+static int mincharspeed=0;				/* min. char. speed, below: farnsworth*/
 static int speed=200;					/* current speed in cpm */
 static int maxspeed=0;
 static int freq=800;					/* current cw sidetone freq */
@@ -100,10 +101,8 @@ long samplerate=44100;
 static long long_i;
 static int waveform = SINE;				/* waveform: (0 = none) */
 static char wavename[10]="Sine    ";	/* Name of the waveform */
-static int rise=2;						/* rise/fall time in milliseconds */
-static int fall=2;
-static int rt;							/* risetime, normalized to samplerate */
-static int ft;							/* falltime. to be calced in 'morse' */
+static int edge=2;						/* rise/fall time in milliseconds */
+static int ed;							/* risetime, normalized to samplerate */
 
 static short buffer[88200];
 
@@ -224,7 +223,7 @@ int main (int argc, char *argv[]) {
 	mid_w = newwin(17, 60, 4, 0);
 	bot_w = newwin(3, 60, 21, 0);
 	right_w = newwin(24, 20, 0, 60);
-	
+
 	/* no need to join here, this is the first possible time CW is sent */
 	pthread_create(&cwthread, NULL, & morse, (void *) "QRQ");
 
@@ -428,10 +427,10 @@ while (status == 2) {
 	wattroff(mid_w, A_BOLD);
 	mvwprintw(mid_w,2,2, "Initial Speed:         %3d CpM / %3d WpM" 
 					"    up/down", initialspeed, initialspeed/5);
-	mvwprintw(mid_w,3,2, "CW risetime (ms):      %d %s" 
-					"        +/-", rise, (rise < 0) ? "(adaptive)" : "           ");
-	mvwprintw(mid_w,4,2, "CW falltime (ms):      %d %s" 
-					"        :/;", fall, (fall < 0) ? "(adaptive)" : "           ");
+	mvwprintw(mid_w,3,2, "Min. character Speed:  %3d CpM / %3d WpM" 
+					"    left/right", mincharspeed, mincharspeed/5);
+	mvwprintw(mid_w,4,2, "CW rise/falltime (ms): %d %s" 
+					"        +/-", edge, (edge < 0) ? "(adaptive)" : "           ");
 	mvwprintw(mid_w,5,2, "Callsign:              %-14s" 
 					"       c", mycall);
 	mvwprintw(mid_w,6,2, "CW pitch (0 = random): %-4d"
@@ -460,24 +459,14 @@ while (status == 2) {
 	j = getch();
 
 	switch ((int) j) {
-		case '+':							/* risetime */
-			if (rise < 9) {
-				rise++;
+		case '+':							/* rise/falltime */
+			if (edge < 9) {
+				edge++;
 			}
 			break;
 		case '-':
-			if (rise >= 0) {
-				rise--;
-			}
-			break;
-		case ';':							/* fall time */
-			if(fall < 9) {
-				fall++;
-			}
-			break;
-		case ':':
-			if (fall >= 0) {
-				fall--;
+			if (edge >= 0) {
+				edge--;
 			}
 			break;
 		case 'w':							/* change waveform */
@@ -516,12 +505,20 @@ while (status == 2) {
 		case 'u':
 				unlimitedattempt = (unlimitedattempt ? 0 : 1);
 			break;
-		case 259:							/* arrow key up */
+		case KEY_UP: 
 			initialspeed += 10;
 			break;
-		case 258:
+		case KEY_DOWN:
 			if (initialspeed > 10) {
 				initialspeed -= 10;
+			}
+			break;
+		case KEY_RIGHT:
+			mincharspeed += 10;
+			break;
+		case KEY_LEFT:
+			if (mincharspeed > 10) {
+				mincharspeed -= 10;
 			}
 			break;
 		case 'c':
@@ -954,13 +951,23 @@ static int read_config () {
 			tmp[i]='\0';
 			i = atoi(tmp);
 			if (i > 9) {
-				initialspeed = i;
+				initialspeed = speed = i;
 				printw("  line  %2d: initial speed: %d\n", line, initialspeed);
 			}
 			else {
 				printw("  line  %2d: initial speed: %d invalid (range: 10..oo)."
 								" Using default %d.\n",line,  i, initialspeed);
 			}
+		}
+		else if (tmp == strstr(tmp,"mincharspeed=")) {
+			while (isdigit(tmp[i] = tmp[13+i])) {
+				i++;
+			}
+			tmp[i]='\0';
+			if ((i = atoi(tmp)) > 0) {
+				mincharspeed = i;
+				printw("  line  %2d: min.char.speed: %d\n", line, mincharspeed);
+			} /* else ignore */
 		}
 		else if (tmp == strstr(tmp,"dspdevice=")) {
 			while (isgraph(tmp[i] = tmp[10+i])) {
@@ -981,16 +988,8 @@ static int read_config () {
 				i++;	
 			}
 			tmp[i]='\0';
-			rise = atoi(tmp);
-			printw("  line  %2d: risetime: %d\n", line, rise);
-		}
-		else if (tmp == strstr(tmp, "falltime=")) {
-			while (isdigit(tmp[i] = tmp[9+i]) || ((tmp[i] = tmp[9+i])) == '-') {
-				i++;	
-			}
-			tmp[i]='\0';
-			fall = atoi(tmp);
-			printw("  line  %2d: falltime: %d\n", line, fall);
+			edge = atoi(tmp);
+			printw("  line  %2d: risetime: %d\n", line, edge);
 		}
 		else if (tmp == strstr(tmp, "waveform=")) {
 			if (isdigit(tmp[i] = tmp[9+i])) {	/* read 1 char only */
@@ -1084,32 +1083,59 @@ static int read_config () {
 static void *morse(void *arg) { 
 	char * text = arg;
 	int i,j;
-	int c, ms;
+	int c, fulldotlen, dotlen, dashlen, charspeed, farnsworth, fwdotlen;
 	const char *code;
 
 	/* opening the DSP device */
 	dsp_fd = open_dsp(dspdevice);
 
 	/* Some silence; otherwise the call starts right after pressing enter */
-	tonegen(0, 250, SILENCE);
+	tonegen(0, 11025, SILENCE);
+
+	/* Farnsworth? */
+	if (speed < mincharspeed) {
+			charspeed = mincharspeed;
+			farnsworth = 1;
+			fwdotlen = (int) (samplerate * 6/speed);
+	}
+	else {
+		charspeed = speed;
+		farnsworth = 0;
+	}
 
 	/* speed is in LpM now, so we have to calculate the dot-length in
-	 * milliseconds using the well-known formula  dotlength= 60/(wpm*50) */
+	 * milliseconds using the well-known formula  dotlength= 60/(wpm*50) 
+	 * and then to samples */
 
-	ms = (int) 60000/(speed * 10);
+	dotlen = (int) (samplerate * 6/charspeed);
+	fulldotlen = dotlen;
+	dashlen = 3*dotlen;
 	
-	/* rise == risetime in milliseconds, we need nr. of samples (rt) 
-	 * rise = -1 => adaptive to 10% of dot-length
-	 * */
-	if (rise >= 0) 
-		rt = (int) (samplerate * (rise/1000.0));
-	else 
-		rt = (int) (0.1 * samplerate * (ms/1000.0));
+	/* rise == risetime in milliseconds, we need nr. of samples (ed) 
+	 * these rise and fall-times are symmetrically added in front
+	 * of and after the dots and dashes, reaching half of the amplitude exactly
+	 * where the element is supposed to start/end; making the element spaces
+	 * shorter. If they exceed half of the element space, the dots/dashes
+	 * itself are shorted	to the point where it just reaches the maximum
+	 * amplitude in the middle. (case B below) Beyond this point, the fall/rise
+	 * times are shortened (case A below) */
 
-	if (fall >= 0) 
-		ft = (int) (samplerate * (fall/1000.0));
-	else 
-		ft = (int) (0.1 * samplerate * (ms/1000.0));
+	ed = (int) (samplerate * (edge/1000.0));
+
+//	fprintf(stderr, "dotlen %d, dashlen %d, ed %d\n",dotlen, dashlen, ed);
+	
+	if (ed > dotlen) {	/* case A */
+//		fprintf(stderr, "CASE A: Shorten Edges\n");
+		ed = dotlen;
+		dotlen = 1;
+		dashlen -= ed;
+	}
+	else if (2*ed > dotlen) {	/* case B */
+//		fprintf(stderr, "CASE A: Shorten Dot\n");
+		dashlen = (dashlen + dotlen) - 2*ed;
+		dotlen = 2*dotlen - 2*ed;
+	}
+
 
 	for (i = 0; i < strlen(text); i++) {
 		c = text[i];
@@ -1134,15 +1160,20 @@ static void *morse(void *arg) {
 		for (j = 0; j < strlen(code) ; j++) {
 			c = code[j];
 			if (c == '.') {
-				tonegen(freq, ms, waveform);
-				tonegen(0, ms, SILENCE);
+				tonegen(freq, dotlen + ed, waveform);
+				tonegen(0, fulldotlen - ed, SILENCE);
 			}
 			else {
-				tonegen(freq, 3*ms, waveform);
-				tonegen(0, ms, SILENCE);
+				tonegen(freq, dashlen + ed, waveform);
+				tonegen(0, fulldotlen - ed, SILENCE);
 			}
 		}
-		tonegen(0, 2*ms, SILENCE);
+		if (farnsworth) {
+			tonegen(0, 3*fwdotlen - fulldotlen, SILENCE);
+		}
+		else {
+			tonegen(0, 2*fulldotlen, SILENCE);
+		}
 	}
 
 	write_audio(dsp_fd, buffer, 88200);
@@ -1151,7 +1182,7 @@ static void *morse(void *arg) {
 	return NULL;
 }
 
-/* tonegen generates a sinus tone of frequency 'freq' and length 'len' (ms)
+/* tonegen generates a sinus tone of frequency 'freq' and length 'len' (samples)
  * based on 'samplerate', 'rise' (risetime), 'fall' (falltime) */
 
 static int tonegen (int freq, int len, int waveform) {
@@ -1159,9 +1190,9 @@ static int tonegen (int freq, int len, int waveform) {
 	int out;
 	double val=0;
 	/* convert len from milliseconds to samples, determine rise/fall time */
-	len = (int) (samplerate * (len/1000.0));
+	/* len = (int) (samplerate * (len/1000.0)); */
+
 	for (x=0; x < len-1; x++) {
-		
 		switch (waveform) {
 			case SINE:
 				val = sin(2*PI*freq*x/samplerate);
@@ -1177,12 +1208,13 @@ static int tonegen (int freq, int len, int waveform) {
 		}
 
 
-		if (x < rt) { val *= pow(sin(PI*x/(2.0*rt)),2); }		/* rising edge */
+		if (x < ed) { val *= pow(sin(PI*x/(2.0*ed)),2); }	/* rising edge */
 
-		if (x > (len-ft)) {								/* falling edge */
-				val *= pow(sin(2*PI*(x-(len-ft)+ft)/(4*ft)),2); 
+		if (x > (len-ed)) {								/* falling edge */
+				val *= pow(sin(2*PI*(x-(len-ed)+ed)/(4*ed)),2); 
 		}
 		
+		fprintf(stderr, "%f\n", val);
 		out = (int) (val * 32500.0);
 		out = out + (out<<16);				/* add second channel */
 		write_audio(dsp_fd, &out, sizeof(out));
@@ -1216,6 +1248,11 @@ static int save_config () {
 			snprintf(tmp, i+1, "constanttone=%d ", constanttone);
 			fputs(tmp, fh);	
 		}
+		else if (strstr(tmp,"mincharspeed=")) {
+			fseek(fh, -(i+1), SEEK_CUR);
+			snprintf(tmp, i+1, "mincharspeed=%d ", mincharspeed);
+			fputs(tmp, fh);	
+		}
 		else if (strstr(tmp,"ctonefreq=")) {
 			fseek(fh, -(i+1), SEEK_CUR);
 			snprintf(tmp, i+1, "ctonefreq=%d ", ctonefreq);
@@ -1223,12 +1260,7 @@ static int save_config () {
 		}
 		else if (strstr(tmp, "risetime=")) {
 			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "risetime=%d ", rise);
-			fputs(tmp, fh);	
-		}
-		else if (strstr(tmp, "falltime=")) {
-			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "falltime=%d ", fall);
+			snprintf(tmp, i+1, "risetime=%d ", edge);
 			fputs(tmp, fh);	
 		}
 		else if (strstr(tmp,"callsign=")) {
