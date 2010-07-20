@@ -166,6 +166,7 @@ void OpenAlStream::blockAndQueueBackBuffer()
 
   alGetSourcei(_source, AL_BUFFERS_QUEUED, &numQueued);
 
+  ALint val;
   switch(numQueued)
   {
 		  case 2:
@@ -188,6 +189,9 @@ void OpenAlStream::blockAndQueueBackBuffer()
 
 				  alSourceQueueBuffers(_source, 1, &buffer);
 				  check();
+				  alGetSourcei(_source, AL_SOURCE_STATE, &val);
+				  if(val != AL_PLAYING)
+					alSourcePlay(_source);
 				  break;
 
 		  case 1:
@@ -195,6 +199,11 @@ void OpenAlStream::blockAndQueueBackBuffer()
 
 				  alBufferData(_buffers[1], _format, &_myBuffer[0], _myBuffer.size(), getSampleRate());
 				  alSourceQueueBuffers(_source, 1, &_buffers[1]); 
+
+				  alGetSourcei(_source, AL_SOURCE_STATE, &val);
+				  if(val != AL_PLAYING)
+					alSourcePlay(_source);
+
 				  break;
 		  case 0:
 				  // first buffer not queued yet so push onto buffer 1

@@ -54,9 +54,18 @@ int write_audio(void * cookie, void* incomingBuffer, int incomingSize)
 int close_audio(void * cookie)
 {
   OpenAlStream* pStream = (OpenAlStream*) cookie;
-  pStream->flush();
+  try
+  {
+	pStream->flush();
+  }
+  catch(std::exception& e)
+  {
+	cerr<<"Exception: "<<e.what()<<endl;
+	delete pStream;
+	return 0;
+  }
+  
   delete pStream;
-
   return 0;
 }
 

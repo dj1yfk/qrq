@@ -24,7 +24,8 @@ ifeq ($(USE_OPENAL), YES)
 		OBJECTS=qrq.o OpenAlImp.o OpenAlStream.o
 		CFLAGS:=$(CFLAGS) -D OPENAL
 		ifeq ($(OSX_PLATFORM), YES)
-			LDFLAGS:=$(LDFLAGS) -framework OpenAL
+			LDFLAGS:=$(LDFLAGS) -framework OpenAL -isysroot /Developer/SDKs/MacOSX10.5.sdk -mmacosx-version-min=10.5
+			CFLAGS:=$(CFLAGS) -isysroot /Developer/SDKs/MacOSX10.5.sdk -mmacosx-version-min=10.5
 			ifeq ($(OSX_BUNDLE), YES)
 				CFLAGS:=$(CFLAGS) -D OSX_BUNDLE
 			endif

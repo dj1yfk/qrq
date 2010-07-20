@@ -40,7 +40,7 @@ class OpenAlStream
 {
 		public: 
 				OpenAlStream();
-				OpenAlStream::~OpenAlStream();
+				~OpenAlStream();
 
 				void setBufferSize(int size);
 				void setFormat(ALenum format);
