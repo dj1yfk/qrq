@@ -331,7 +331,7 @@ while (status == 1) {
 	
 	for (callnr=1; callnr < (unlimitedattempt ? nrofcalls : 51); callnr++) {
 		/* Make sure to wait for the cwthread of the previous callsign, if
-		 * neccessary. */
+		 * necessary. */
 		pthread_join(cwthread, NULL);
 		
 		/* select an unused callsign from the calls-array */
@@ -1372,7 +1372,7 @@ static int find_files () {
 	char tmp_tlfilename[1024] = "";
 	char tmp_cbfilename[1024] = "";
 
-	printw("\nChecking for neccesary files (qrqrc, toplist, callbase)...\n");
+	printw("\nChecking for necessary files (qrqrc, toplist, callbase)...\n");
 	
 	if (((fh = fopen("qrqrc", "r")) == NULL) ||
 		((fh = fopen("toplist", "r")) == NULL) ||
