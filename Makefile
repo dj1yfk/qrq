@@ -114,7 +114,7 @@ dist:
 	rm -rf releases/qrq-$(VERSION)
 	mkdir qrq-$(VERSION)
 	cp qrq.png qrqscore qrq.c oss.c oss.h qrqrc callbase.qcb toplist \
-		ChangeLog README COPYING qrq.1 Makefile qrq-$(VERSION)
+		AUTHORS ChangeLog README COPYING qrq.1 Makefile qrq-$(VERSION)
 	cp OpenAlImp.h OpenAlImp.cpp OpenAlStream.cpp OpenAlStream.h \
 		qrq-$(VERSION)
 	cp pulseaudio.h pulseaudio.c qrq-$(VERSION)
