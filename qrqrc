@@ -5,8 +5,8 @@
 # program, so there is usually no need to manually change anything here.
 
 callsign=DJ1YFK      # your callsign
-initialspeed=400     # initial speed in LpM (5 LpM = 1 WPM)
-mincharspeed=200     # minimum character speed. below, Farnsworth is used
+initialspeed=200     # initial speed in LpM (5 LpM = 1 WPM)
+mincharspeed=100     # minimum character speed. below, Farnsworth is used
 dspdevice=/dev/dsp   # your DSP device, usually /dev/dsp, /dev/dsp0 ...
 
 # risetime and falltime for shaping the CW sigs (in milliseconds). recommended

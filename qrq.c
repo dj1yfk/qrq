@@ -1,6 +1,6 @@
 /* 
 qrq - High speed morse trainer, similar to the DOS classic "Rufz"
-Copyright (C) 2006-2010  Fabian Kurz
+Copyright (C) 2006-2011  Fabian Kurz
 
 $Id$
 
@@ -52,13 +52,20 @@ Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #  define VERSION "0.0.0"
 #endif
 
-#ifndef OPENAL
+#ifdef OPENAL
+#include "OpenAlImp.h"
+typedef void *AUDIO_HANDLE;
+#endif
+
+#ifdef OSS
 #include "oss.h"
 #define write_audio(x, y, z) write(x, y, z)
 #define close_audio(x) close(x)
 typedef int AUDIO_HANDLE;
-#else
-#include "OpenAlImp.h"
+#endif
+
+#ifdef PA
+#include "pulseaudio.h"
 typedef void *AUDIO_HANDLE;
 #endif
 
@@ -172,7 +179,7 @@ int main (int argc, char *argv[]) {
 	keypad(stdscr, TRUE);
 	scrollok(stdscr, FALSE);
 
-	printw("qrq v%s - Copyright (C) 2006-2010 Fabian Kurz, DJ1YFK\n", VERSION);
+	printw("qrq v%s - Copyright (C) 2006-2011 Fabian Kurz, DJ1YFK\n", VERSION);
 	printw("This is free software, and you are welcome to redistribute it\n");
 	printw("under certain conditions (see COPYING).\n");
 
@@ -1187,7 +1194,7 @@ static void *morse(void *arg) {
 
 static int tonegen (int freq, int len, int waveform) {
 	int x=0;
-	int out;
+	short int out;
 	double val=0;
 	/* convert len from milliseconds to samples, determine rise/fall time */
 	/* len = (int) (samplerate * (len/1000.0)); */
@@ -1215,7 +1222,7 @@ static int tonegen (int freq, int len, int waveform) {
 		}
 		
 		//fprintf(stderr, "%f\n", val);
-		out = (int) (val * 32500.0);
+		out = (short int) (val * 32500.0);
 		out = out + (out<<16);				/* add second channel */
 		write_audio(dsp_fd, &out, sizeof(out));
 	}
@@ -1714,7 +1721,7 @@ void select_callbase () {
 
 
 void help () {
-		printf("qrq v%s  (c) 2006-2010 Fabian Kurz, DJ1YFK. "
+		printf("qrq v%s  (c) 2006-2011 Fabian Kurz, DJ1YFK. "
 					"http://fkurz.net/ham/qrq.html\n", VERSION);
 		printf("High speed morse telegraphy trainer, similar to"
 					" RUFZ.\n\n");

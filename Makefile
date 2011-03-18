@@ -7,10 +7,14 @@ DESTDIR?=/usr
 # note that you must use OpenAL for OSX
 USE_OPENAL=NO
 
+# set to YES if you want to use PulseAudio instead of OSS
+USE_PA=YES
+
 # set to YES if building on OSX
 OSX_PLATFORM=NO
 
-# set to YES if you want make install to build an OSX bundle instead of installing to DESTDIR
+# set to YES if you want make install to build an OSX bundle instead of
+# installing to DESTDIR
 # also directs qrq to look in bundle location for shared resources
 OSX_BUNDLE=YES
 
@@ -32,6 +36,11 @@ ifeq ($(USE_OPENAL), YES)
 		else
 			LDFLAGS:=$(LDFLAGS) -lopenal
 		endif
+endif
+ifeq ($(USE_PA), YES)
+		CFLAGS:=$(CFLAGS) -D PA
+		LDFLAGS:=$(LDFLAGS) -lpulse-simple
+		OBJECTS=qrq.o pulseaudio.o
 else
 		OBJECTS=qrq.o oss.o
 endif
@@ -108,6 +117,7 @@ dist:
 		ChangeLog README COPYING qrq.1 Makefile qrq-$(VERSION)
 	cp OpenAlImp.h OpenAlImp.cpp OpenAlStream.cpp OpenAlStream.h \
 		qrq-$(VERSION)
+	cp pulseaudio.h pulseaudio.c qrq-$(VERSION)
 	cp -r OSXExtras qrq-$(VERSION)
 	rm -rf qrq-$(VERSION)/OSXExtras/.svn/
 	tar -zcf qrq-$(VERSION).tar.gz qrq-$(VERSION)
