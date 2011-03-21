@@ -39,7 +39,7 @@ ifeq ($(USE_OPENAL), YES)
 endif
 ifeq ($(USE_PA), YES)
 		CFLAGS:=$(CFLAGS) -D PA
-		LDFLAGS:=$(LDFLAGS) -lpulse-simple
+		LDFLAGS:=$(LDFLAGS) -lpulse-simple -lpulse 
 		OBJECTS=qrq.o pulseaudio.o
 else
 		OBJECTS=qrq.o oss.o

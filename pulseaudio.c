@@ -27,20 +27,27 @@ PulseAudio specific functions and includes.
 #include <pulse/error.h>
 
 extern long samplerate;
+extern void  *dsp_fd;
 
 short int buf[441000];		/* 10 secs buffer */
 int bufpos = 0;
 
 void *open_dsp () {
+	static int opened = 0;
+
+	/* with PA we only open the device once and then leave it
+	   opened */
+	if (opened) {
+		return dsp_fd;
+	}
 
 	/* The Sample format to use */
 	static const pa_sample_spec ss = {
 		.format = PA_SAMPLE_S16LE,
 		.rate = 44100,
-		.channels = 2
+		.channels = 1
 	};
 	pa_simple *s = NULL;
-	int ret = 1;
 	int error;
 
 	if (!(s = pa_simple_new(NULL, "qrq", PA_STREAM_PLAYBACK, NULL, 
@@ -49,23 +56,23 @@ void *open_dsp () {
 				pa_strerror(error));
 	}
 
+	opened = 1;
 	return s;
 }
 
 /* actually just puts samples into the buffer that is played at the end 
 (close_audio) */
-void write_audio (void *bla, short int *in, size_t size) {
+void write_audio (void *bla, int *in, int size) {
 	int i = 0;
-	for (i=0; i < size; i++) {
-		buf[bufpos] = in[i];
+	for (i=0; i < size/sizeof(int); i++) {
+		buf[bufpos] = (short int) in[i];
 		bufpos++;
 	}	
 }
 
 void close_audio (void *s) {
 	int e;
-	pa_simple_write(s, buf, 2*bufpos, &e);
-	pa_simple_free(s);
+	pa_simple_write(s, buf, bufpos*sizeof(short int), &e);
 	bufpos = 0;
 }
 

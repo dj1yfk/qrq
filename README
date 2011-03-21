@@ -14,10 +14,10 @@ ability to copy callsigns at high speeds, as needed for example for Contesting.
 
 INSTALL:
 
-1. make [DESTDIR=/usr] [USE_OPENAL=NO] [OSX_PLATFORM=NO] [OSX_BUNDLE=YES]
+1. make [DESTDIR=/usr] [USE_PA=NO] [USE_OPENAL=NO] [OSX_PLATFORM=NO] [OSX_BUNDLE=YES]
 
 Compiles qrq.  Optionally, you can compile against the OpenAL audio
-library, instead of OSS.  This will create the executable
+library, or Pulse Audio instead of OSS.  This will create the executable
 file, 'qrq' in the current directory. To run, qrq only needs the files
 'qrqrc', 'toplist', and 'callbase.qcb', which are also in the current
 directory. 
@@ -102,6 +102,6 @@ Contact, Feedback
 
 I am always interested in any kind of feedback concerning qrq. If you have any
 suggestions, questions, feature-requests etc., don't hesitate a minute and
-contact me via eMail (mail@fkurz.net) or ICQ (169955833).
+contact me via eMail (mail@fkurz.net).
 
 ...-.-

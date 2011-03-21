@@ -113,7 +113,7 @@ static int ed;							/* risetime, normalized to samplerate */
 
 static short buffer[88200];
 
-static AUDIO_HANDLE dsp_fd;
+AUDIO_HANDLE dsp_fd;
 
 static int display_toplist();
 static int calc_score (char * realcall, char * input, int speed, char * output);
@@ -1183,7 +1183,11 @@ static void *morse(void *arg) {
 		}
 	}
 
+#ifndef PA
 	write_audio(dsp_fd, buffer, 88200);
+#else
+	write_audio(dsp_fd, buffer, 44100);
+#endif
 	close_audio(dsp_fd);
 
 	return NULL;
@@ -1194,7 +1198,7 @@ static void *morse(void *arg) {
 
 static int tonegen (int freq, int len, int waveform) {
 	int x=0;
-	short int out;
+	int out;
 	double val=0;
 	/* convert len from milliseconds to samples, determine rise/fall time */
 	/* len = (int) (samplerate * (len/1000.0)); */
@@ -1222,8 +1226,8 @@ static int tonegen (int freq, int len, int waveform) {
 		}
 		
 		//fprintf(stderr, "%f\n", val);
-		out = (short int) (val * 32500.0);
-		out = out + (out<<16);				/* add second channel */
+		out = (int) (val * 32500.0);
+	//	out = out + (out<<16);				/* add second channel */
 		write_audio(dsp_fd, &out, sizeof(out));
 	}
 	return 0;
