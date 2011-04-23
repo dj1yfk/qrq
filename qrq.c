@@ -85,6 +85,7 @@ static char cblist[100][PATH_MAX];
 static char mycall[15]="DJ1YFK";		/* mycall. will be read from qrqrc */
 static char dspdevice[PATH_MAX]="/dev/dsp";	/* will also be read from qrqrc */
 static int score = 0;					/* qrq score */
+static int sending_complete;			/* global lock for "enter" while sending */
 static int callnr;						/* nr of actual call in attempt */
 static int initialspeed=200;			/* initial speed. to be read from file*/
 static int mincharspeed=0;				/* min. char. speed, below: farnsworth*/
@@ -369,7 +370,8 @@ while (status == 1) {
 
 		/* starting the morse output in a separate process to make keyboard
 		 * input and echoing at the same time possible */
-	
+		
+		sending_complete = 0;	
 		j = pthread_create(&cwthread, NULL, morse, calls[i]);	
 		thread_fail(j);		
 		
@@ -637,7 +639,7 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 	wrefresh(win);
 	curs_set(TRUE);
 	
-	while ((c = getch()) != '\n') {
+	while ((!sending_complete && c = getch()) != '\n') {
 
 		if (((c > 64 && c < 91) || (c > 96 && c < 123) || (c > 47 && c < 58)
 					 || c == '/') && strlen(line) < 14) {
@@ -1189,6 +1191,8 @@ static void *morse(void *arg) {
 	write_audio(dsp_fd, buffer, 44100);
 #endif
 	close_audio(dsp_fd);
+
+	sending_complete = 1;
 
 	return NULL;
 }
