@@ -639,7 +639,11 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 	wrefresh(win);
 	curs_set(TRUE);
 	
-	while ((!sending_complete && c = getch()) != '\n') {
+	while (1) {
+		c = getch();
+
+		if (c == '\n' && sending_complete)
+			break;
 
 		if (((c > 64 && c < 91) || (c > 96 && c < 123) || (c > 47 && c < 58)
 					 || c == '/') && strlen(line) < 14) {
