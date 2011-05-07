@@ -6,6 +6,7 @@
 	* Call databases with DOS linebreaks can now be used.
 	* Fixed bugs in memory allocation.
 	* CW edges changed to raised cosine
+	* PulseAudio support added (OSS and OpenAL still available)
 	* Reformatted ChangeLog
 
 0.1.4 / 2008-06-22   Fabian Kurz <mail@fkurz.net>
