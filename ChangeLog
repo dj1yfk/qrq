@@ -1,4 +1,4 @@
-0.2.0 / 2010-05-05   Fabian Kurz <mail@fkurz.net>
+0.2.0 / 2011-05-07   Fabian Kurz <mail@fkurz.net>
 	* Added options for fixed CW speed (regardless of errors), unlimited
 	usage of repeats and unlimited attempt lengths. Suggested by AA0HW.
 	* No more duplicate callsigns in one attempt
