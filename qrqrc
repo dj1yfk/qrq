@@ -12,7 +12,7 @@ dspdevice=/dev/dsp   # your DSP device, usually /dev/dsp, /dev/dsp0 ...
 # risetime and falltime for shaping the CW sigs (in milliseconds). recommended
 # values: 1..5 see http://fkurz.net/ham/dah.png for an illustration.
 # if you have no clue what is is, just leave it ;-) 
-risetime=2 
+risetime=2.
 falltime=9  
 
 # waveform. Can be 1 = Sine, 2 = Sawtooth, 3 = Square wave

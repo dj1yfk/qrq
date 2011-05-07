@@ -454,8 +454,10 @@ while (status == 2) {
 					"                  u", (unlimitedattempt ? "yes" : "no"));
 	mvwprintw(mid_w,11,2, "Callsign database:     %-15s"
 					"      d (%d)", basename(cbfilename),nrofcalls);
+#ifdef OSS
 	mvwprintw(mid_w,12,2, "DSP device:            %-15s"
 					"      e", dspdevice);
+#endif
 	mvwprintw(mid_w,14,2, "Press");
 	mvwprintw(mid_w,14,11, "to play sample CW,");
 	mvwprintw(mid_w,14,34, "to go back.");
@@ -540,6 +542,7 @@ while (status == 2) {
 			}
 			p=0;							/* cursor position */
 			break;
+#ifdef OSS
 		case 'e':
 			readline(mid_w, 12, 25, dspdevice, 0);
 			if (strlen(dspdevice) == 0) {
@@ -547,6 +550,7 @@ while (status == 2) {
 			}
 			p=0;							/* cursor position */
 			break;
+#endif
 		case 'd':							/* go to database browser */
 				status = 3;
 				curs_set(1);
@@ -997,7 +1001,7 @@ static int read_config () {
 			}
 		}
 		else if (tmp == strstr(tmp, "risetime=")) {
-			while (isdigit(tmp[i] = tmp[9+i]) || ((tmp[i] = tmp[9+i])) == '-') {
+			while (isdigit(tmp[i] = tmp[9+i]) || ((tmp[i] = tmp[9+i])) == '.') {
 				i++;	
 			}
 			tmp[i]='\0';
