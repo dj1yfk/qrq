@@ -725,7 +725,7 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 			j = pthread_create(&cwthread, NULL, &morse, (void *) "73");	
 			thread_fail(j);
 			/* make sure the cw thread doesn't die with the main thread */
-			pthread_exit(NULL);
+			pthread_join(cwthread, NULL);
 			/* Exit the whole main thread */
 			exit(0);
 		}
