@@ -1123,32 +1123,15 @@ static void *morse(void *arg) {
 	dotlen = (int) (samplerate * 6/charspeed);
 	fulldotlen = dotlen;
 	dashlen = 3*dotlen;
-	
-	/* rise == risetime in milliseconds, we need nr. of samples (ed) 
-	 * these rise and fall-times are symmetrically added in front
-	 * of and after the dots and dashes, reaching half of the amplitude exactly
-	 * where the element is supposed to start/end; making the element spaces
-	 * shorter. If they exceed half of the element space, the dots/dashes
-	 * itself are shorted	to the point where it just reaches the maximum
-	 * amplitude in the middle. (case B below) Beyond this point, the fall/rise
-	 * times are shortened (case A below) */
+
+	/* edge = length of rise/fall time in ms. ed = in samples */
 
 	ed = (int) (samplerate * (edge/1000.0));
 
-//	fprintf(stderr, "dotlen %d, dashlen %d, ed %d\n",dotlen, dashlen, ed);
-	
-	if (ed > dotlen) {	/* case A */
-//		fprintf(stderr, "CASE A: Shorten Edges\n");
-		ed = dotlen;
-		dotlen = 1;
-		dashlen -= ed;
-	}
-	else if (2*ed > dotlen) {	/* case B */
-//		fprintf(stderr, "CASE A: Shorten Dot\n");
-		dashlen = (dashlen + dotlen) - 2*ed;
-		dotlen = 2*dotlen - 2*ed;
-	}
-
+	/* the signal needs "ed" samples to reach the full amplitude and
+	 * at the end another "ed" samples to reach zero. The dots and
+	 * dashes therefore are becoming longer by "ed" and the pauses
+	 * after them are shortened accordingly by "ed" samples */
 
 	for (i = 0; i < strlen(text); i++) {
 		c = text[i];
@@ -1233,9 +1216,7 @@ static int tonegen (int freq, int len, int waveform) {
 				val *= pow(sin(2*PI*(x-(len-ed)+ed)/(4*ed)),2); 
 		}
 		
-		//fprintf(stderr, "%f\n", val);
 		out = (int) (val * 32500.0);
-	//	out = out + (out<<16);				/* add second channel */
 		write_audio(dsp_fd, &out, sizeof(out));
 	}
 	return 0;
