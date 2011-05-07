@@ -4,16 +4,15 @@
 # The settings can be changed and saved from within the
 # program, so there is usually no need to manually change anything here.
 
-callsign=DJ1YFK      # your callsign
-initialspeed=600     # initial speed in LpM (5 LpM = 1 WPM)
+callsign=MYCALL      # your callsign
+initialspeed=200     # initial speed in LpM (5 LpM = 1 WPM)
 mincharspeed=100     # minimum character speed. below, Farnsworth is used
-dspdevice=/dev/dsp   # your DSP device, usually /dev/dsp, /dev/dsp0 ...
+dspdevice=/dev/dsp   # your DSP device, usually /dev/dsp (for OSS only)
 
 # risetime and falltime for shaping the CW sigs (in milliseconds). recommended
 # values: 1..5 see http://fkurz.net/ham/dah.png for an illustration.
 # if you have no clue what is is, just leave it ;-) 
-risetime=2.
-falltime=9  
+risetime=2.0
 
 # waveform. Can be 1 = Sine, 2 = Sawtooth, 3 = Square wave
 # Default: Sine. Sawtooth and square wave contain more overtones and may be

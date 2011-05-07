@@ -69,6 +69,7 @@ install: qrq
 	install    -m 0755 qrqscore				qrq.app/Contents/MacOS/
 	install    -m 0644 qrq.1				qrq.app/Contents/Resources/share/man/man1/
 	install    -m 0644 callbase.qcb				qrq.app/Contents/Resources/share/qrq/
+	install    -m 0644 english.qcb				qrq.app/Contents/Resources/share/qrq/
 	install    -m 0644 qrqrc				qrq.app/Contents/Resources/share/qrq/
 	install    -m 0644 toplist				qrq.app/Contents/Resources/share/qrq/
 	install    -m 0644 OSXExtras/qrq.icns	qrq.app/Contents/Resources/
@@ -88,6 +89,7 @@ install: qrq
 	install    -m 0755 qrqscore     $(DESTDIR)/bin/
 	install    -m 0644 qrq.1        $(DESTDIR)/share/man/man1/
 	install    -m 0644 callbase.qcb $(DESTDIR)/share/qrq/
+	install    -m 0644 english.qcb  $(DESTDIR)/share/qrq/
 	install    -m 0644 qrqrc        $(DESTDIR)/share/qrq/
 	install    -m 0644 toplist      $(DESTDIR)/share/qrq/
 
@@ -97,6 +99,7 @@ uninstall:
 	rm -f $(DESTDIR)/bin/qrqscore
 	rm -f $(DESTDIR)/share/man/man1/qrq.1
 	rm -f $(DESTDIR)/share/qrq/callbase.qcb
+	rm -f $(DESTDIR)/share/qrq/english.qcb
 	rm -f $(DESTDIR)/share/qrq/qrqrc
 	rm -f $(DESTDIR)/share/qrq/toplist
 	rmdir $(DESTDIR)/share/qrq/
@@ -115,7 +118,8 @@ dist:
 	rm -rf releases/qrq-$(VERSION)
 	mkdir qrq-$(VERSION)
 	cp qrq.png qrqscore qrq.c oss.c oss.h qrqrc callbase.qcb toplist \
-		AUTHORS ChangeLog README COPYING qrq.1 Makefile qrq-$(VERSION)
+		AUTHORS ChangeLog README COPYING qrq.1 Makefile \
+		english.qcb qrq-$(VERSION)
 	cp OpenAlImp.h OpenAlImp.cpp OpenAlStream.cpp OpenAlStream.h \
 		qrq-$(VERSION)
 	cp pulseaudio.h pulseaudio.c qrq-$(VERSION)

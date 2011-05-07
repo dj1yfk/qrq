@@ -2,10 +2,14 @@
 	* Added options for fixed CW speed (regardless of errors), unlimited
 	usage of repeats and unlimited attempt lengths. Suggested by AA0HW.
 	* No more duplicate callsigns in one attempt
+	* Unlimited attempts (e.g. with _all_ callsigns of a particular
+	  database) added
 	* Call database file can be changed/selected in a menu now
+	* Added a database with the 100 most common English words
 	* Call databases with DOS linebreaks can now be used.
 	* Fixed bugs in memory allocation.
 	* CW edges changed to raised cosine
+	* Minimum character speed can be specified; below, Farnsworth is used
 	* PulseAudio support added (OSS and OpenAL still available)
 	* Reformatted ChangeLog
 

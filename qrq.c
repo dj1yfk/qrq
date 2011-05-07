@@ -1189,14 +1189,12 @@ static void *morse(void *arg) {
 }
 
 /* tonegen generates a sinus tone of frequency 'freq' and length 'len' (samples)
- * based on 'samplerate', 'rise' (risetime), 'fall' (falltime) */
+ * based on 'samplerate', 'edge' (rise/falltime) */
 
 static int tonegen (int freq, int len, int waveform) {
 	int x=0;
 	int out;
 	double val=0;
-	/* convert len from milliseconds to samples, determine rise/fall time */
-	/* len = (int) (samplerate * (len/1000.0)); */
 
 	for (x=0; x < len-1; x++) {
 		switch (waveform) {
