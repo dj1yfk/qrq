@@ -109,7 +109,7 @@ long samplerate=44100;
 static long long_i;
 static int waveform = SINE;				/* waveform: (0 = none) */
 static char wavename[10]="Sine    ";	/* Name of the waveform */
-static int edge=2;						/* rise/fall time in milliseconds */
+static double edge=2.0;						/* rise/fall time in milliseconds */
 static int ed;							/* risetime, normalized to samplerate */
 
 static short buffer[88200];
@@ -438,8 +438,8 @@ while (status == 2) {
 					"    up/down", initialspeed, initialspeed/5);
 	mvwprintw(mid_w,3,2, "Min. character Speed:  %3d CpM / %3d WpM" 
 					"    left/right", mincharspeed, mincharspeed/5);
-	mvwprintw(mid_w,4,2, "CW rise/falltime (ms): %d %s" 
-					"        +/-", edge, (edge < 0) ? "(adaptive)" : "           ");
+	mvwprintw(mid_w,4,2, "CW rise/falltime (ms): %1.1f           " 
+					"       +/-", edge);
 	mvwprintw(mid_w,5,2, "Callsign:              %-14s" 
 					"       c", mycall);
 	mvwprintw(mid_w,6,2, "CW pitch (0 = random): %-4d"
@@ -469,13 +469,13 @@ while (status == 2) {
 
 	switch ((int) j) {
 		case '+':							/* rise/falltime */
-			if (edge < 9) {
-				edge++;
+			if (edge <= 9.0) {
+				edge += 0.1;
 			}
 			break;
 		case '-':
-			if (edge >= 0) {
-				edge--;
+			if (edge > 0.1) {
+				edge -= 0.1;
 			}
 			break;
 		case 'w':							/* change waveform */
@@ -1001,8 +1001,8 @@ static int read_config () {
 				i++;	
 			}
 			tmp[i]='\0';
-			edge = atoi(tmp);
-			printw("  line  %2d: risetime: %d\n", line, edge);
+			edge = atof(tmp);
+			printw("  line  %2d: risetime: %f\n", line, edge);
 		}
 		else if (tmp == strstr(tmp, "waveform=")) {
 			if (isdigit(tmp[i] = tmp[9+i])) {	/* read 1 char only */
@@ -1260,7 +1260,7 @@ static int save_config () {
 		}
 		else if (strstr(tmp, "risetime=")) {
 			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "risetime=%d ", edge);
+			snprintf(tmp, i+1, "risetime=%f ", edge);
 			fputs(tmp, fh);	
 		}
 		else if (strstr(tmp,"callsign=")) {
