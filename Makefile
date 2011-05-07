@@ -43,7 +43,8 @@ ifeq ($(USE_PA), YES)
 		OBJECTS=qrq.o pulseaudio.o
 else
 		OBJECTS=qrq.o oss.o
-endif
+		CFLAGS:=$(CFLAGS) -D OSS
+endif	
 
 all: qrq
 

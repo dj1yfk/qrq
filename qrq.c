@@ -1192,7 +1192,7 @@ static void *morse(void *arg) {
 #ifndef PA
 	write_audio(dsp_fd, buffer, 88200);
 #else
-	write_audio(dsp_fd, buffer, 44100);
+	write_audio(dsp_fd, (int *) buffer, 44100);
 #endif
 	close_audio(dsp_fd);
 
