@@ -1710,8 +1710,8 @@ void select_callbase () {
 			}
 			break;
 		case KEY_DOWN:
-			c = (c < (i-1)) ? (c+1) : c;
-			if (!(c % 10)) {	/* scroll down */
+			c = (c < i-1) ? (c+1) : c;
+			if (c && !(c % 10)) {	/* scroll down */
 				p++;
 			}
 			break;
