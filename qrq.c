@@ -1219,6 +1219,9 @@ static int tonegen (int freq, int len, int waveform) {
 		}
 		
 		out = (int) (val * 32500.0);
+#ifndef PA
+		out = out + (out<<16);	/* stereo only for OSS & OPENAL */
+#endif
 		write_audio(dsp_fd, &out, sizeof(out));
 	}
 	return 0;
