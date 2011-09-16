@@ -1,0 +1,11 @@
+Author: Fabian Kurz (dj1yfk) <mail@fkurz.net>, Marc Vaillant (kb1ooo) <kb1ooo@kb1ooo.com>
+Maintainer: BigBoss <bigboss@thebigboss.org>
+Name: qrq
+Package: com.kb1ooo.qrq
+Depends: ncurses
+Section: Multimedia
+Installed-Size: 62
+Version: 0.2.1
+Architecture: iphoneos-arm
+Description: QRQ contest trainer (RUFZ clone). Console application.
+dev: kb1ooo

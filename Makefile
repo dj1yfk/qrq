@@ -5,7 +5,7 @@ DESTDIR?=/usr
 
 # set to YES if you want to use OpenAL instead of OSS
 # note that you must use OpenAL for OSX
-USE_OPENAL=NO
+USE_CA=NO
 
 # set to YES if you want to use PulseAudio instead of OSS
 USE_PA=YES
@@ -23,21 +23,26 @@ ifneq ($(OSX_PLATFORM), YES)
 endif
 
 CFLAGS:=$(CFLAGS) -D DESTDIR=\"$(DESTDIR)\" -D VERSION=\"$(VERSION)\"
+CC=gcc
 
-ifeq ($(USE_OPENAL), YES)
-		OBJECTS=qrq.o OpenAlImp.o OpenAlStream.o
-		CFLAGS:=$(CFLAGS) -D OPENAL
+ifeq ($(USE_CA), YES)
+		OBJECTS=qrq.o coreaudio.o
+		CFLAGS:=$(CFLAGS) -D CA -std=c99
 		ifeq ($(OSX_PLATFORM), YES)
-			LDFLAGS:=$(LDFLAGS) -framework OpenAL -isysroot /Developer/SDKs/MacOSX10.5.sdk -mmacosx-version-min=10.5
-			CFLAGS:=$(CFLAGS) -isysroot /Developer/SDKs/MacOSX10.5.sdk -mmacosx-version-min=10.5
+			LDFLAGS:=$(LDFLAGS) -framework AudioUnit -framework CoreServices  -isysroot /Developer/SDKs/MacOSX10.6.sdk -mmacosx-version-min=10.5
+			CFLAGS:=$(CFLAGS) -isysroot /Developer/SDKs/MacOSX10.6.sdk -mmacosx-version-min=10.5
 			ifeq ($(OSX_BUNDLE), YES)
 				CFLAGS:=$(CFLAGS) -D OSX_BUNDLE
 			endif
-		else
-			LDFLAGS:=$(LDFLAGS) -lopenal
+		else  # build for iphone/ipad
+			LDFLAGS:=$(LDFLAGS) -L iOSExtras/lib -framework AudioToolbox -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS4.3.sdk
+			CFLAGS:=$(CFLAGS) -I iOSExtras/include -isysroot /Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS4.3.sdk
+			CC:=/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/gcc-4.2 -arch armv6
+			IPHONE_HOST=root@localhost
+			SCP=scp -P2222
+			SSH=ssh -p2222
 		endif
-endif
-ifeq ($(USE_PA), YES)
+else ifeq ($(USE_PA), YES)
 		CFLAGS:=$(CFLAGS) -D PA
 		LDFLAGS:=$(LDFLAGS) -lpulse-simple -lpulse 
 		OBJECTS=qrq.o pulseaudio.o
@@ -49,13 +54,13 @@ endif
 all: qrq
 
 qrq: $(OBJECTS)
-	g++ -pthread -Wall -lm -lncurses $(LDFLAGS) -o $@ $^
+	$(CC) -pthread -Wall -lm -lncurses $(LDFLAGS) -o $@ $^
 	
 .c.o:
-	gcc -Wall $(CFLAGS) -c $<
+	$(CC) -Wall $(CFLAGS) -c $<
 
-.cpp.o:
-	g++ $(CFLAGS) -c $<
+#.cpp.o:
+#	g++ $(CFLAGS) -c $<
 
 ifeq ($(OSX_BUNDLE), YES)
 
@@ -105,6 +110,25 @@ uninstall:
 	rmdir $(DESTDIR)/share/qrq/
 
 endif
+
+package: qrq
+	export CODESIGN_ALLOCATE=/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/codesign_allocate; ldid -s qrq
+	rm -rf qrq-pkg
+	install -d -v                   qrq-pkg/$(DESTDIR)/share/qrq/
+	install -d -v                   qrq-pkg/$(DESTDIR)/share/man/man1/
+	install -d -v                   qrq-pkg/$(DESTDIR)/bin/
+	install -d -v                   qrq-pkg/DEBIAN/
+	install -s -m 0755 qrq          qrq-pkg/$(DESTDIR)/bin/
+	install    -m 0755 qrqscore     qrq-pkg/$(DESTDIR)/bin/
+	install    -m 0644 qrq.1        qrq-pkg/$(DESTDIR)/share/man/man1/
+	install    -m 0644 callbase.qcb qrq-pkg/$(DESTDIR)/share/qrq/
+	install    -m 0644 english.qcb  qrq-pkg/$(DESTDIR)/share/qrq/
+	install    -m 0644 qrqrc        qrq-pkg/$(DESTDIR)/share/qrq/
+	install    -m 0644 toplist      qrq-pkg/$(DESTDIR)/share/qrq/
+	install    -m 0644 control      qrq-pkg/DEBIAN/
+	export COPYFILE_DISABLE=1; export COPY_EXTENDED_ATTRIBUTES_DISABLE=1; dpkg-deb -b qrq-pkg cydiastore_com.kb1ooo.qrq_v$(shell grep ^Version: control | cut -d ' ' -f 2).deb
+	$(SCP) cydiastore_com.kb1ooo.qrq_v$(shell grep ^Version: control | cut -d ' ' -f 2).deb $(IPHONE_HOST):/tmp
+	$(SSH) $(IPHONE_HOST) "dpkg -i /tmp/cydiastore_com.kb1ooo.qrq_v$(shell grep ^Version: control | cut -d ' ' -f 2).deb"
 
 clean:
 	rm -f qrq toplist-old *~ *.o

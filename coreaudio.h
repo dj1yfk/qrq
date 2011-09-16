@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2008 Marc Vaillant
+Copyright (c) 2011 Marc Vaillant
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,71 +19,23 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-$Id$
-
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdexcept>
-#include <iostream>
-#include "OpenAlImp.h"
-#include "OpenAlStream.h"
+#ifndef CORE_AUDIO_IMP
+#define CORE_AUDIO_IMP
 
-extern long samplerate;
-
-using namespace std;
-
-int write_audio(void * cookie, void* incomingBuffer, int incomingSize)
+#ifdef __cplusplus
+extern "C" 
 {
-  OpenAlStream* pStream = (OpenAlStream*) cookie;
+#endif
 
-  try
-  {
-	pStream->write(incomingBuffer, incomingSize);
-  }
-  catch(std::exception& e)
-  {
-	cerr<<"Exception: "<<e.what()<<endl;
-	return 0;
-  }
-  return incomingSize;
+  void* open_dsp(char * dummy);
+  int write_audio(void* cookie, int* incomingBuffer, int incomingSize);
+  int close_audio(void* cookie);
+
+#ifdef __cplusplus
 }
+#endif
 
-int close_audio(void * cookie)
-{
-  OpenAlStream* pStream = (OpenAlStream*) cookie;
-  try
-  {
-	pStream->flush();
-  }
-  catch(std::exception& e)
-  {
-	cerr<<"Exception: "<<e.what()<<endl;
-	delete pStream;
-	return 0;
-  }
-  
-  delete pStream;
-  return 0;
-}
+#endif
 
-void* open_dsp (char * dummy)
-{
-  OpenAlStream* pStream;
-
-  try
-  {
-	pStream = new OpenAlStream();
-  }
-  catch(exception& e)
-  {
-	cerr<<"Exception: "<<e.what()<<endl;
-	return 0;
-  }
-
-  pStream->setSampleRate(samplerate);
-
-  return pStream;;
-}

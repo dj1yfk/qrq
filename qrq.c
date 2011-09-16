@@ -52,8 +52,8 @@ Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #  define VERSION "0.0.0"
 #endif
 
-#ifdef OPENAL
-#include "OpenAlImp.h"
+#ifdef CA
+#include "coreaudio.h"
 typedef void *AUDIO_HANDLE;
 #endif
 
@@ -113,6 +113,8 @@ static double edge=2.0;						/* rise/fall time in milliseconds */
 static int ed;							/* risetime, normalized to samplerate */
 
 static short buffer[88200];
+static int full_buf[882000];  /* 20 second max buffer */
+static int full_bufpos = 0;
 
 AUDIO_HANDLE dsp_fd;
 
@@ -126,6 +128,7 @@ static int read_config();
 static int save_config();
 static int tonegen(int freq, int length, int waveform);
 static void *morse(void * arg); 
+static int add_to_buf(void* data, int size);
 static int readline(WINDOW *win, int y, int x, char *line, int i); 
 static void thread_fail (int j);
 static int check_toplist ();
@@ -157,9 +160,12 @@ int main (int argc, char *argv[]) {
 
   /* if built as osx bundle set DESTDIR to Resources dir of bundle */
 #ifdef OSX_BUNDLE
+  char tempdir[PATH_MAX]="";
   char* p_slash = strrchr(argv[0], '/');
-  strncpy(destdir, argv[0], p_slash - argv[0]);
-  strcat(destdir, "/../Resources");
+  strncpy(tempdir, argv[0], p_slash - argv[0]);
+  p_slash = strrchr(tempdir, '/');
+  strncpy(destdir, tempdir, p_slash - tempdir);
+  strcat(destdir, "/Resources");
 #else
   strcpy(destdir, DESTDIR);
 #endif
@@ -588,7 +594,8 @@ while (status == 3) {
 	wattron(mid_w,A_BOLD);
 	mvwaddstr(mid_w,1,1, "Change Callsign Database");
 	wattroff(mid_w,A_BOLD);
-	mvwaddstr(mid_w,3,1, ".qcb files found (in "DESTDIR"/share/qrq/ and ~/.qrq/):");
+	mvwprintw(mid_w,3,1, ".qcb files found (in %s/share/qrq/ and ~/.qrq/):",destdir);
+/*	mvwaddstr(mid_w,3,1, ".qcb files found:");*/ 
 
 	/* populate cblist */	
 	find_callbases();
@@ -1106,6 +1113,10 @@ static void *morse(void *arg) {
 	/* opening the DSP device */
 	dsp_fd = open_dsp(dspdevice);
 
+	/* set bufpos to 0 */
+
+	full_bufpos = 0; 
+
 	/* Some silence; otherwise the call starts right after pressing enter */
 	tonegen(0, 11025, SILENCE);
 
@@ -1176,17 +1187,30 @@ static void *morse(void *arg) {
 		}
 	}
 
-#ifndef PA
-	write_audio(dsp_fd, buffer, 88200);
-#else
-	write_audio(dsp_fd, (int *) buffer, 44100);
+//#ifndef PA
+//	write_audio(dsp_fd, buffer, 88200);
+//#else
+//	write_audio(dsp_fd, (int *) buffer, 44100);
+//#endif
+
+#if !defined(PA) && !defined(CA)
+	add_to_buf(buffer, 88200);
 #endif
+
+	write_audio(dsp_fd, &full_buf[0], full_bufpos);
 	close_audio(dsp_fd);
 
 	sending_complete = 1;
 
 	return NULL;
 }
+
+static int add_to_buf(void* data, int size)
+{
+	memcpy(&full_buf[full_bufpos / sizeof(int)], data, size);
+	full_bufpos += size;
+	return 0;
+}	
 
 /* tonegen generates a sinus tone of frequency 'freq' and length 'len' (samples)
  * based on 'samplerate', 'edge' (rise/falltime) */
@@ -1220,9 +1244,10 @@ static int tonegen (int freq, int len, int waveform) {
 		
 		out = (int) (val * 32500.0);
 #ifndef PA
-		out = out + (out<<16);	/* stereo only for OSS & OPENAL */
+		out = out + (out<<16);	/* stereo only for OSS & CoreAudio*/
 #endif
-		write_audio(dsp_fd, &out, sizeof(out));
+		add_to_buf(&out, sizeof(out));
+//		write_audio(dsp_fd, &out, sizeof(out));
 	}
 	return 0;
 }
@@ -1620,7 +1645,9 @@ void find_callbases () {
 	strcat(path[0], "/");
 	strcpy(path[1], getenv("HOME"));
 	strcat(path[1], "/.qrq/");
-	strcpy(path[2], DESTDIR"/share/qrq/");
+	//strcpy(path[2], DESTDIR"/share/qrq/");
+	strcpy(path[2], destdir);
+	strcat(path[2], "/share/qrq/");
 
 	for (i=0; i < 100; i++) {
 		strcpy(cblist[i], "");
@@ -1652,6 +1679,7 @@ void select_callbase () {
 	int i = 0, j = 0, k = 0;
 	int c = 0;		/* cursor position   */
 	int p = 0;		/* page a 10 entries */
+	char* cblist_ptr;
 
 
 	curs_set(FALSE);
@@ -1677,7 +1705,8 @@ void select_callbase () {
 	/* display 10 files, highlight cursor position */
 	for (j = p*10; j < (p+1)*10; j++) {
 		if (j <= i) {
-			mvwprintw(mid_w,5+(j - p*10 ),2, "  %s       ", cblist[j]);
+				cblist_ptr = cblist[j];
+				mvwprintw(mid_w,5+(j - p*10 ),2, "  %s       ", cblist_ptr);
 		}
 		if (c == j) {						/* cursor */
 			mvwprintw(mid_w,5+(j - p*10),2, ">");
