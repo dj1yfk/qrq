@@ -1,4 +1,4 @@
-QRQ - yet another CW trainer for Linux/Unix - Version 0.2.0
+QRQ - yet another CW trainer for Linux/Unix - Version 0.2.1
 
 Project website: http://fkurz.net/ham/qrq.html
 -----------------------------------------------------------------------------
@@ -102,8 +102,6 @@ from qrq, they are licensed under the MIT license.
 
 Contact, Feedback
 
-I am always interested in any kind of feedback concerning qrq. If you have any
-suggestions, questions, feature-requests etc., don't hesitate a minute and
-contact me via eMail (mail@fkurz.net).
-
-...-.-
+I am always interested in any kind of feedback concerning qrq.
+If you have any suggestions, questions, feature-requests etc., don't hesitate
+a minute and contact the author: Fabian Kurz, DJ1YFK <mail@fkurz.net>.

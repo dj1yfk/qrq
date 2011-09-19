@@ -1,8 +1,10 @@
-0.2.1
-  * Added support for native CoreAudio on OSX.  Also builds for iOS. 
+0.2.1 / 2011-09-20   Fabian Kurz <mail@fkurz.net>
+	* Added support for native CoreAudio on OSX.  Also builds for iOS.
+	  [tnx KB1OOO]
 	* Removed support for OpenAL now that native OSX is supported and Pulse
-   	Audio is available
-	*
+	  Audio is available. [tnx KB1OOO]
+	* Added English word lists [tnx Chuck Vaughn, AA0HW]
+	* Fixed Debian Bug 771075 [tnx John Nogatch, AC6SL]
 
 0.2.0 / 2011-05-07   Fabian Kurz <mail@fkurz.net>
 	* Added options for fixed CW speed (regardless of errors), unlimited
