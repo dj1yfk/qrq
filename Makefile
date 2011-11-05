@@ -8,7 +8,10 @@ DESTDIR?=/usr
 USE_CA=NO
 
 # set to YES if you want to use PulseAudio instead of OSS
-USE_PA=YES
+USE_PA=NO
+
+# set to YES if you compile with MINGW32
+USE_WIN32=NO
 
 # set to YES if building on OSX
 OSX_PLATFORM=NO
@@ -22,12 +25,12 @@ ifneq ($(OSX_PLATFORM), YES)
 		OSX_BUNDLE=NO
 endif
 
-CFLAGS:=$(CFLAGS) -D DESTDIR=\"$(DESTDIR)\" -D VERSION=\"$(VERSION)\"
+CFLAGS:=$(CFLAGS) -D DESTDIR=\"$(DESTDIR)\" -D VERSION=\"$(VERSION)\" -I.
 CC=gcc
 
 ifeq ($(USE_CA), YES)
 		OBJECTS=qrq.o coreaudio.o
-		CFLAGS:=$(CFLAGS) -D CA -std=c99
+		CFLAGS:=$(CFLAGS) -D CA -std=c99 -pthread
 		ifeq ($(OSX_PLATFORM), YES)
 			LDFLAGS:=$(LDFLAGS) -framework AudioUnit -framework CoreServices  -isysroot /Developer/SDKs/MacOSX10.6.sdk -mmacosx-version-min=10.5
 			CFLAGS:=$(CFLAGS) -isysroot /Developer/SDKs/MacOSX10.6.sdk -mmacosx-version-min=10.5
@@ -43,18 +46,23 @@ ifeq ($(USE_CA), YES)
 			SSH=ssh -p2222
 		endif
 else ifeq ($(USE_PA), YES)
-		CFLAGS:=$(CFLAGS) -D PA
-		LDFLAGS:=$(LDFLAGS) -lpulse-simple -lpulse 
+		CFLAGS:=$(CFLAGS) -D PA -pthread
+		LDFLAGS:=$(LDFLAGS) -lpulse-simple -lpulse -lncurses
 		OBJECTS=qrq.o pulseaudio.o
+else ifeq ($(USE_WIN32), YES)
+		CFLAGS:=$(CFLAGS) -D PA
+		LDFLAGS:=$(LDFLAGS) -lwinmm
+		OBJECTS=qrq.o pdcurses.a libpthreadGC1.a
 else
 		OBJECTS=qrq.o oss.o
+		LDFLAGS:=$(LDFLAGS) -lwinmm -lncurses
 		CFLAGS:=$(CFLAGS) -D OSS
 endif	
 
 all: qrq
 
 qrq: $(OBJECTS)
-	$(CC) -pthread -Wall -o $@ $^ -lm -lncurses $(LDFLAGS)
+	$(CC) -Wall -o $@ $^ -lm $(LDFLAGS)
 	
 .c.o:
 	$(CC) -Wall $(CFLAGS) -c $<
