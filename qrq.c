@@ -1350,7 +1350,7 @@ static int save_config () {
 	char tmp[80]="";
 	int i;
 	
-	if ((fh = fopen(rcfilename, "r+")) == NULL) {
+	if ((fh = fopen(rcfilename, "rb+")) == NULL) {
 		endwin();
 		fprintf(stderr, "Unable to open config file '%s'!\n", rcfilename);
 		exit(EXIT_FAILURE);
@@ -1743,13 +1743,19 @@ void find_callbases () {
 	char path[3][PATH_MAX];
 	int i=0,j=0,k=0;
 
-	strcpy(path[0], getenv("PWD"));
-	strcat(path[0], "/");
-	strcpy(path[1], getenv("HOME"));
-	strcat(path[1], "/.qrq/");
-	//strcpy(path[2], DESTDIR"/share/qrq/");
-	strcpy(path[2], destdir);
-	strcat(path[2], "/share/qrq/");
+#ifndef WIN32
+		strcpy(path[0], getenv("PWD"));
+		strcat(path[0], "/");
+		strcpy(path[1], getenv("HOME"));
+		strcat(path[1], "/.qrq/");
+		strcpy(path[2], destdir);
+		strcat(path[2], "/share/qrq/");
+#else
+		strcpy(path[0], "./");
+		strcpy(path[1], getenv("APPDATA"));
+		strcat(path[1], "/qrq/");
+		strcpy(path[2], "c:\\");
+#endif
 
 	for (i=0; i < 100; i++) {
 		strcpy(cblist[i], "");

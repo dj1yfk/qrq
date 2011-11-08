@@ -11,7 +11,7 @@ USE_CA=NO
 USE_PA=NO
 
 # set to YES if you compile with MINGW32
-USE_WIN32=NO
+USE_WIN32=YES
 
 # set to YES if building on OSX
 OSX_PLATFORM=NO
