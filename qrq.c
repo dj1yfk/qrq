@@ -211,7 +211,6 @@ int main (int argc, char *argv[]) {
 	 * is 31 characters long, with the added time stamp */
 	check_toplist();
 
-
 	/* buffer for audio */
 	for (long_i=0;long_i<88200;long_i++) {
 		buffer[long_i]=0;
@@ -246,10 +245,19 @@ int main (int argc, char *argv[]) {
 	refresh();
 	getch();
 
+	endwin();
+	(void) initscr();
+	
 	top_w = newwin(4, 60, 0, 0);
 	mid_w = newwin(17, 60, 4, 0);
 	bot_w = newwin(3, 60, 21, 0);
 	right_w = newwin(24, 20, 0, 60);
+
+	werase(top_w);
+	werase(mid_w);
+	werase(bot_w);
+	werase(right_w);
+
 
 	keypad(bot_w, TRUE);
 
@@ -1009,10 +1017,12 @@ static int read_config () {
 		fprintf(stderr, "Unable to open config file %s!\n", rcfilename);
 		exit(EXIT_FAILURE);
 	}
+
 	while ((feof(fh) == 0) && (fgets(tmp, 80, fh) != NULL)) {
 		i=0;
 		line++;
 		tmp[strlen(tmp)-1]='\0';
+
 		/* find callsign, speed etc. 
 		 * only allow if the lines are beginning at zero, so stuff can be
 		 * commented out easily; return value if strstr must point to tmp*/
@@ -1343,78 +1353,134 @@ static int tonegen (int freq, int len, int waveform) {
 	return 0;
 }
 
-/* TODO: Remove copypasta, write small functions to do it */
+/* Save config file
+ *
+ * Tries to keep the old format (including comments, etc.) and adds
+ * config options that were not used yet in the file to the end 
+ * */
 
 static int save_config () {
 	FILE *fh;
 	char tmp[80]="";
-	int i;
-	
-	if ((fh = fopen(rcfilename, "rb+")) == NULL) {
+	char confopts[12][80] = {
+		"\ncallsign=", 
+		"\ncallbase=",
+		"\ndspdevice=", 
+		"\ninitialspeed=", 
+		"\nmincharspeed=",
+		"\nwaveform=", 
+		"\nconstanttone=",
+		"\nctonefreq=", 
+		"\nfixspeed=", 
+		"\nunlimitedattempt=", 
+		"\nf6=", 
+		"\nrisetime=" 
+	};
+	char *conf1;
+	char *conf2;
+	char *find, *findend;
+	int i, len;
+	long j;
+
+	conf2 = malloc(1);
+
+	if ((fh = fopen(rcfilename, "r+")) == NULL) {
 		endwin();
 		fprintf(stderr, "Unable to open config file '%s'!\n", rcfilename);
 		exit(EXIT_FAILURE);
 	}
 
-	while ((feof(fh) == 0) && (fgets(tmp, 80, fh) != NULL)) {
-		tmp[strlen(tmp)-1]='\0';
-		i = strlen(tmp);
-		if (strstr(tmp,"initialspeed=")) {
-			fseek(fh, -(i+1), SEEK_CUR);	/* go to beginning of the line */
-			snprintf(tmp, i+1, "initialspeed=%d ", initialspeed);
-			fputs(tmp, fh);	
+	fseek(fh, 0, SEEK_END);
+	j = ftell(fh);
+
+	conf1 = malloc((size_t) j+1);
+
+	rewind(fh);
+	i = fread(conf1, sizeof(char), (size_t) j, fh);
+
+	/* The whole config file is now in conf1 
+	 *
+	 * For each config option, search&replace it with the current value.
+	 * Only accept key=value pairs if the key starts on pos 0 of the line
+	 * */
+
+	endwin();
+	for (i = 0; i < 11; i++) {
+		/* assemble new string for this conf option*/
+		switch (i) {
+			case 0:
+				sprintf(tmp, "%s%s ", confopts[i], mycall);
+				break;
+			case 1:
+				sprintf(tmp, "%s%s ", confopts[i], cbfilename);
+				break;
+			case 2:
+				sprintf(tmp, "%s%s ", confopts[i], dspdevice);
+				break;
+			case 3:
+				sprintf(tmp, "%s%d ", confopts[i], initialspeed);
+				break;
+			case 4:
+				sprintf(tmp, "%s%d ", confopts[i], mincharspeed);
+				break;
+			case 5:
+				sprintf(tmp, "%s%d ", confopts[i], waveform);
+				break;
+			case 6:
+				sprintf(tmp, "%s%d ", confopts[i], constanttone);
+				break;
+			case 7:
+				sprintf(tmp, "%s%d ", confopts[i], ctonefreq);
+				break;
+			case 8:
+				sprintf(tmp, "%s%d ", confopts[i], fixspeed);
+				break;
+			case 9:
+				sprintf(tmp, "%s%d ", confopts[i], unlimitedattempt);
+				break;
+			case 10:
+				sprintf(tmp, "%s%d ", confopts[i], f6);
+				break;
+			case 11:
+				sprintf(tmp, "%s%f ", confopts[i], edge);
+				break;
+		}	
+
+		/* Conf option already in rc-file? */
+		if (find = strstr(conf1, confopts[i])) {
+			/* determine length. */
+			findend = find;
+			while (*findend++ != ' ');
+			len = findend - find;
+			
+			/* old size of conf1: j (see above) 
+			 * new size: j - len + strlen(tmp)*/
+			conf2 = realloc(conf2, (size_t) j - len + strlen(tmp) + 100);
+
+			strncpy(conf2, conf1, (find - conf1));
+			strncpy(conf2 + (find - conf1), tmp, strlen(tmp));
+			strcpy(conf2 + (find - conf1) + strlen(tmp), findend);
 		}
-		else if (strstr(tmp,"constanttone=")) {
-			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "constanttone=%d ", constanttone);
-			fputs(tmp, fh);	
+		/* otherwise, add to the end */
+		else {
+			conf2 = realloc(conf2, (size_t) (j - len + strlen(tmp) + 100));
+			strncpy(conf2, conf1, j);
+			strncat(conf2, tmp, strlen(tmp));
 		}
-		else if (strstr(tmp,"mincharspeed=")) {
-			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "mincharspeed=%d ", mincharspeed);
-			fputs(tmp, fh);	
+		conf1 = realloc(conf1, (size_t) strlen(conf2) + 100);
+		if (conf1 == NULL) {
+			exit(0);
 		}
-		else if (strstr(tmp,"ctonefreq=")) {
-			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "ctonefreq=%d ", ctonefreq);
-			fputs(tmp, fh);	
-		}
-		else if (strstr(tmp, "risetime=")) {
-			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "risetime=%f ", edge);
-			fputs(tmp, fh);	
-		}
-		else if (strstr(tmp,"callsign=")) {
-			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "callsign=%-7s ", mycall);
-			fputs(tmp, fh);	
-		}
-		else if (strstr(tmp,"dspdevice=")) {
-			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "dspdevice=%s ", dspdevice);
-			fputs(tmp, fh);	
-		}
-		else if (strstr(tmp,"waveform=")) {
-			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "waveform=%d ", waveform);
-			fputs(tmp, fh);	
-		}
-		else if (strstr(tmp,"f6=")) {
-			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "f6=%d ", f6);
-			fputs(tmp, fh);	
-		}
-		else if (strstr(tmp,"fixspeed=")) {
-			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "fixspeed=%d ", fixspeed);
-			fputs(tmp, fh);	
-		}
-		else if (strstr(tmp,"unlimitedattempt=")) {
-			fseek(fh, -(i+1), SEEK_CUR);
-			snprintf(tmp, i+1, "unlimitedattempt=%d ", unlimitedattempt);
-			fputs(tmp, fh);	
-		}
+		strcpy(conf1, conf2);
+
 	}
+
+
+	rewind(fh);
+	fwrite(conf1, strlen(conf2), sizeof(char), fh); 
+	fwrite("\n", 1, sizeof(char), fh);
+	fclose(fh);
+
 	return 0;
 }
 		
@@ -1486,7 +1552,7 @@ static int check_toplist () {
  *    there.
  * 4) Nowhere --> Exit.*/
 static int find_files () {
-
+	
 	FILE *fh;
 	const char *homedir = NULL;
 	char tmp_rcfilename[1024] = "";
@@ -1609,7 +1675,6 @@ static int find_files () {
 	}
 	refresh();
 	fclose(fh);
-
 	return 0;
 }
 

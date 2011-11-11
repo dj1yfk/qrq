@@ -8,10 +8,10 @@ DESTDIR?=/usr
 USE_CA=NO
 
 # set to YES if you want to use PulseAudio instead of OSS
-USE_PA=NO
+USE_PA=YES
 
 # set to YES if you compile with MINGW32
-USE_WIN32=YES
+USE_WIN32=NO
 
 # set to YES if building on OSX
 OSX_PLATFORM=NO
@@ -55,7 +55,7 @@ else ifeq ($(USE_WIN32), YES)
 		OBJECTS=qrq.o pdcurses.a libpthreadGC1.a
 else
 		OBJECTS=qrq.o oss.o
-		LDFLAGS:=$(LDFLAGS) -lwinmm -lncurses
+		LDFLAGS:=$(LDFLAGS) -lpthread -lncurses
 		CFLAGS:=$(CFLAGS) -D OSS
 endif	
 

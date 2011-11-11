@@ -4,9 +4,9 @@
 # The settings can be changed and saved from within the
 # program, so there is usually no need to manually change anything here.
 
-callsign=MYCALL      # your callsign
+callsign=BMEINSE      # your callsign
 initialspeed=200     # initial speed in LpM (5 LpM = 1 WPM)
-mincharspeed=100     # minimum character speed. below, Farnsworth is used
+mincharspeed=210     # minimum character speed. below, Farnsworth is used
 dspdevice=/dev/dsp   # your DSP device, usually /dev/dsp (for OSS only)
 
 # risetime and falltime for shaping the CW sigs (in milliseconds). recommended
@@ -17,7 +17,7 @@ risetime=2.0
 # waveform. Can be 1 = Sine, 2 = Sawtooth, 3 = Square wave
 # Default: Sine. Sawtooth and square wave contain more overtones and may be
 # better to hear at very high speeds.
-waveform=1   
+waveform=3   
 
 # constanttone 
 # don't change the cw tone pitch
@@ -30,13 +30,23 @@ constanttone=0
 ctonefreq=600    
 
 # allow unlimited usage of F6
-f6=0   
+f6=1   
 
 # use fixed speed in the attempts, regardless of errors
-fixspeed=0     
+# fixspeed=0     
 
 # allow unlimited attempts (instead of just 50 calls)
-unlimitedattempt=0
+unlimitedattempt=1  
 
 # Callbase - specify a different file here, if desired.
 # callbase=/tmp/test
+
+callbase=/home/fabian/qrq/trunk/english.qcb 
+fixspeed=0 
+[)
+
+.qcb 
+
+
+
+
