@@ -1379,24 +1379,28 @@ static int save_config () {
 	char *conf1;
 	char *conf2;
 	char *find, *findend;
-	int i, len;
-	long j;
+	int i, len, conf1len, conf2len;
+	int j;
 
 	conf2 = malloc(1);
 
-	if ((fh = fopen(rcfilename, "r+")) == NULL) {
+	if ((fh = fopen(rcfilename, "r")) == NULL) {
 		endwin();
 		fprintf(stderr, "Unable to open config file '%s'!\n", rcfilename);
 		exit(EXIT_FAILURE);
 	}
 
 	fseek(fh, 0, SEEK_END);
-	j = ftell(fh);
+	j = (int) ftell(fh);
 
 	conf1 = malloc((size_t) j+1);
 
 	rewind(fh);
 	i = fread(conf1, sizeof(char), (size_t) j, fh);
+	conf1[j] = '\0';
+	conf1len = j;
+
+	fclose(fh);
 
 	/* The whole config file is now in conf1 
 	 *
@@ -1404,8 +1408,8 @@ static int save_config () {
 	 * Only accept key=value pairs if the key starts on pos 0 of the line
 	 * */
 
-	endwin();
-	for (i = 0; i < 11; i++) {
+	//endwin();
+	for (i = 0; i < 12; i++) {
 		/* assemble new string for this conf option*/
 		switch (i) {
 			case 0:
@@ -1450,35 +1454,42 @@ static int save_config () {
 		if (find = strstr(conf1, confopts[i])) {
 			/* determine length. */
 			findend = find;
-			while (*findend++ != ' ');
+			findend++;	/* starts with \n, always skip it */
+			while (!isspace(*findend++));
 			len = findend - find;
 			
-			/* old size of conf1: j (see above) 
-			 * new size: j - len + strlen(tmp)*/
-			conf2 = realloc(conf2, (size_t) j - len + strlen(tmp) + 100);
-
-			strncpy(conf2, conf1, (find - conf1));
-			strncpy(conf2 + (find - conf1), tmp, strlen(tmp));
-			strcpy(conf2 + (find - conf1) + strlen(tmp), findend);
+			/* old size of conf1: conf1len (see above) 
+			 * new size: conf1len - len + strlen(tmp)*/
+			conf2len = conf1len - len + strlen(tmp);
+			conf2 = realloc(conf2, (size_t) conf2len);
+			memcpy(conf2, conf1, (find - conf1));
+			memcpy(conf2 + (find - conf1), tmp, strlen(tmp));
+			memcpy(conf2 + (find - conf1) + strlen(tmp), findend, 
+					(size_t) conf2len - (find - conf1) - strlen(tmp));
 		}
 		/* otherwise, add to the end */
 		else {
-			conf2 = realloc(conf2, (size_t) (j - len + strlen(tmp) + 100));
-			strncpy(conf2, conf1, j);
-			strncat(conf2, tmp, strlen(tmp));
+			strcat(tmp, "\n");
+			conf2len = conf1len + strlen(tmp) - 1;
+			conf2 = realloc(conf2, conf2len);
+			memcpy(conf2, conf1, conf1len-1);  // excl. \0
+			memcpy(conf2 + conf1len - 1, tmp, strlen(tmp)); // (incl. \0)
 		}
-		conf1 = realloc(conf1, (size_t) strlen(conf2) + 100);
+		conf1 = realloc(conf1, (size_t) conf2len);
+		conf1len = conf2len;
 		if (conf1 == NULL) {
 			exit(0);
 		}
-		strcpy(conf1, conf2);
-
+		memcpy(conf1, conf2, conf1len);
 	}
 
+	if ((fh = fopen(rcfilename, "w")) == NULL) {
+		endwin();
+		fprintf(stderr, "Unable to open config file '%s'!\n", rcfilename);
+		exit(EXIT_FAILURE);
+	}
 
-	rewind(fh);
-	fwrite(conf1, strlen(conf2), sizeof(char), fh); 
-	fwrite("\n", 1, sizeof(char), fh);
+	fwrite(conf1, conf1len, sizeof(char), fh); 
 	fclose(fh);
 
 	return 0;
