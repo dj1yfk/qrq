@@ -261,8 +261,8 @@ int main (int argc, char *argv[]) {
 	werase(bot_w);
 	werase(right_w);
 
-
 	keypad(bot_w, TRUE);
+	keypad(mid_w, TRUE);
 
 #ifdef WIN_THREADS
 	cwthread = (HANDLE) _beginthread( morse,0,"QRQ");
@@ -325,7 +325,7 @@ while (status == 1) {
 	speed = initialspeed;
 	
 	/* prompt for own callsign */
-	i = readline(bot_w, 1, 30, mycall, 0);
+	i = readline(bot_w, 1, 30, mycall, 1);
 
 	/* F5 -> Configure sound */
 	if (i == 5) {
@@ -719,7 +719,6 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 	
 	while (1) {
 		c = wgetch(win);
-		//mvwprintw(win,0,0,"%i",c);
 		if (c == '\n' && sending_complete)
 			break;
 
@@ -1454,7 +1453,7 @@ static int save_config () {
 		}	
 
 		/* Conf option already in rc-file? */
-		if (find = strstr(conf1, confopts[i])) {
+		if ((find = strstr(conf1, confopts[i])) != NULL) {
 			/* determine length. */
 			findend = find;
 			findend++;	/* starts with \n, always skip it */
