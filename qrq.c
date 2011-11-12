@@ -245,9 +245,12 @@ int main (int argc, char *argv[]) {
 	refresh();
 	getch();
 
-	endwin();
-	(void) initscr();
-	
+//	endwin();
+//	(void) initscr();
+
+	erase();
+	refresh();
+
 	top_w = newwin(4, 60, 0, 0);
 	mid_w = newwin(17, 60, 4, 0);
 	bot_w = newwin(3, 60, 21, 0);
