@@ -19,7 +19,7 @@ Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 */ 
 #if WIN32
-#undef WIN_THREADS
+#define WIN_THREADS
 #endif
 
 #ifndef WIN_THREADS
@@ -953,13 +953,14 @@ static int clear_display() {
 /* write entry into toplist at the right place 
  * going down from the top of the list until the score in the current line is
  * lower than the score made. then */
+
 static int add_to_toplist(char * mycall, int score, int maxspeed) {
 	FILE *fh;	
+	char *part1, *part2;
 	char tmp[35]="";
-	char line[35]="";
 	char insertline[35]="DJ1YFK     36666 333 1111111111";		/* example */
 						/* call       pts   max timestamp */
-	int i=0;
+	int i=0, k=0, j=0;
 	int pos = 0;		/* position where first score < our score appears */
 	int timestamp = 0;
 
@@ -971,33 +972,45 @@ static int add_to_toplist(char * mycall, int score, int maxspeed) {
 	timestamp = (int) time(NULL);
 	
 	/* assemble scoreline to insert */
-	sprintf(insertline, "%-10s%6d %3d %10d",mycall, score, maxspeed, timestamp);
+	sprintf(insertline, "%-10s%6d %3d %10d\n", mycall, score, maxspeed, timestamp);
 	
-	if ((fh = fopen(tlfilename, "r+")) == NULL) {
-		endwin();
-		perror("Unable to open toplist file 'toplist'!\n");
+	if ((fh = fopen("toplist", "r+")) == NULL) {
+		printf("Unable to open toplist file 'toplist'!\n");
 		exit(EXIT_FAILURE);
 	}
-	while ((feof(fh) == 0) && (fgets(line, 35, fh) != NULL)) {
+
+	fseek(fh, 0, SEEK_END);
+	j = ftell(fh);
+
+	part1 = malloc((size_t) j);
+	part2 = malloc((size_t) j + 32);	/* one additional entry */
+
+	rewind(fh);
+
+	/* read whole toplist */
+	fread(part1, sizeof(char), (size_t) j, fh);
+
+	/* find first score below "score"; scores at positions 10 + (i*32) */
+
+	do {
+		for (i = 0 ; i < 6 ; i++) {	
+			tmp[i] = part1[i + (10 + pos*32)];
+		}
+		k = atoi(tmp);
 		pos++;
-		for (i=10;i<16;i++) {			/* extract the score to tmp*/
-			tmp[i-10] = line[i];
-		}
-		tmp[i] = '\0';
-		i = atoi(tmp);				/* i = score of current line */
-		if (i < score){ 			/* insert score and shift lines below */
-			score = i;				/* (ugly) */
-			fseek(fh, -32L, SEEK_CUR);
-			fputs(insertline, fh);
-			strcpy(insertline, line);	/* actual line -> print one later */
-		}
-	}
-	fputs(insertline, fh);
-	if (score != i) {					/* last place. add newline! */
-		fputs("\n",fh);
-	}
-	fclose(fh);	
+	} while (score < k);
+ 
+	/* Found it! Insert own score here! */
+	memcpy(part2, part1, 32 * (pos-1));
+	memcpy(part2 + 32 * (pos -1), insertline, 32);
+	memcpy(part2 + 32 * pos , part1 + 32 * (pos -1), j - 32 * (pos - 1));
+
+	rewind(fh);
+	fwrite(part2, sizeof(char), (size_t) j + 32, fh);
+	fclose(fh);
+
 	return 0;
+
 }
 
 
