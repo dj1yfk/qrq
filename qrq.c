@@ -1009,6 +1009,9 @@ static int add_to_toplist(char * mycall, int score, int maxspeed) {
 	fwrite(part2, sizeof(char), (size_t) j + 32, fh);
 	fclose(fh);
 
+	free(part1);
+	free(part2);
+
 	return 0;
 
 }
@@ -1506,6 +1509,9 @@ static int save_config () {
 
 	fwrite(conf1, conf1len, sizeof(char), fh); 
 	fclose(fh);
+
+	free(conf1);
+	free(conf2);
 
 	return 0;
 }
