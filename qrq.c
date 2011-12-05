@@ -92,7 +92,7 @@ static char mycall[15]="DJ1YFK";		/* mycall. will be read from qrqrc */
 static char dspdevice[PATH_MAX]="/dev/dsp";	/* will also be read from qrqrc */
 static int score = 0;					/* qrq score */
 static int sending_complete;			/* global lock for "enter" while sending */
-static int callnr;						/* nr of actual call in attempt */
+static int callnr = 0;					/* nr of actual call in attempt */
 static int initialspeed=200;			/* initial speed. to be read from file*/
 static int mincharspeed=0;				/* min. char. speed, below: farnsworth*/
 static int speed=200;					/* current speed in cpm */
@@ -467,6 +467,7 @@ while (status == 1) {
 	}
 
 	/* attempt is over, send AR */
+	callnr = 0;
 	
 #ifdef WIN_THREADS
 		 WaitForSingleObject(cwthread,INFINITE);
@@ -485,6 +486,7 @@ while (status == 1) {
 	wrefresh(bot_w);
 	getch();
 	mvwprintw(bot_w,1,1, "                                            ");
+
 	
 } /* while (status == 1) */
 
@@ -597,8 +599,10 @@ while (j = getch()) {
 			break;
 #endif
 		case 'd':							/* go to database browser */
-			curs_set(1);
-			callbase_dialog();
+			if (!callnr) {					/* Only allow outside of attempt */
+				curs_set(1);
+				callbase_dialog();
+			}
 			break;
 		case KEY_F(2):
 			save_config();	
@@ -692,8 +696,10 @@ void update_parameter_dialog () {
 					"                  s", (fixspeed ? "yes" : "no"));
 	mvwprintw(conf_w,10,2, "Unlimited attempt*:    %-3s"
 					"                  u", (unlimitedattempt ? "yes" : "no"));
-	mvwprintw(conf_w,11,2, "Callsign database:     %-15s"
+	if (!callnr) {
+		mvwprintw(conf_w,11,2, "Callsign database:     %-15s"
 					"      d (%d)", basename(cbfilename),nrofcalls);
+	}
 #ifdef OSS
 	mvwprintw(conf_w,12,2, "DSP device:            %-15s"
 					"      e", dspdevice);
