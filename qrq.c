@@ -144,6 +144,10 @@ static int read_callbase ();
 static void find_callbases();
 static void select_callbase ();
 static void help ();
+static void callbase_dialog();
+static void parameter_dialog();
+static int clear_parameter_display();
+static void update_parameter_dialog();
 
 #ifdef WIN_THREADS
 HANDLE cwthread;
@@ -163,7 +167,9 @@ char destdir[PATH_MAX]="";
 /* create windows */
 WINDOW *top_w;					/* actual score					*/
 WINDOW *mid_w;					/* callsign history/mistakes	*/
+WINDOW *conf_w;					/* parameter config display	*/
 WINDOW *bot_w;					/* user input line				*/
+WINDOW *inf_w;					/* info window for param displ	*/
 WINDOW *right_w;				/* highscore list/settings		*/
 
 
@@ -253,16 +259,21 @@ int main (int argc, char *argv[]) {
 
 	top_w = newwin(4, 60, 0, 0);
 	mid_w = newwin(17, 60, 4, 0);
+	conf_w = newwin(17, 60, 4, 0);
 	bot_w = newwin(3, 60, 21, 0);
+	inf_w = newwin(3, 60, 21, 0);
 	right_w = newwin(24, 20, 0, 60);
 
 	werase(top_w);
 	werase(mid_w);
+	werase(conf_w);
 	werase(bot_w);
+	werase(inf_w);
 	werase(right_w);
 
 	keypad(bot_w, TRUE);
 	keypad(mid_w, TRUE);
+	keypad(conf_w, TRUE);
 
 #ifdef WIN_THREADS
 	cwthread = (HANDLE) _beginthread( morse,0,"QRQ");
@@ -277,8 +288,10 @@ while (1) {
 /* status 1 = running an attempt of 50 calls */	
 while (status == 1) {
 	box(top_w,0,0);
+	box(conf_w,0,0);
 	box(mid_w,0,0);
 	box(bot_w,0,0);
+	box(inf_w,0,0);
 	box(right_w,0,0);
 	wattron(top_w,A_BOLD);
 	mvwaddstr(top_w,1,1, "QRQ v");
@@ -329,7 +342,7 @@ while (status == 1) {
 
 	/* F5 -> Configure sound */
 	if (i == 5) {
-		status = 2;
+		parameter_dialog();
 		break;
 	} 
 	/* F6 -> play test CW */
@@ -423,10 +436,10 @@ while (status == 1) {
 		thread_fail(j);		
 #endif
 		
-		
-		
 		f6pressed=0;
-		while (readline(bot_w, 1, 8, input,1) > 4) {/* F5 or F6 was pressed */
+
+	
+		while ((j = readline(bot_w, 1, 8, input,1)) > 4) {/* F5 or F6 was pressed */
 			if (f6pressed && (f6 == 0)) {
 				continue;
 			}
@@ -434,15 +447,15 @@ while (status == 1) {
 			/* wait for old cwthread to finish, then send call again */
 			
 #ifdef WIN_THREADS
-		 WaitForSingleObject(cwthread,INFINITE);
-		 cwthread = (HANDLE) _beginthread( morse,0,calls[i]);
+		WaitForSingleObject(cwthread,INFINITE);
+		cwthread = (HANDLE) _beginthread( morse,0,calls[i]);
 #else
 		pthread_join(cwthread, NULL);
 		j = pthread_create(&cwthread, NULL, &morse, calls[i]);	
 		thread_fail(j);
 #endif			
-			
 		}
+
 		tmp[0]='\0';	
 		score += calc_score(calls[i], input, speed, tmp);
 		update_score();
@@ -475,63 +488,31 @@ while (status == 1) {
 	
 } /* while (status == 1) */
 
-/* status == 2. Change parameters */
-while (status == 2) {
-	clear_display();
 
-	switch (waveform) {
-		case SINE:
-			strcpy(wavename, "Sine    ");
-			break;
-		case SAWTOOTH:
-			strcpy(wavename, "Sawtooth");
-			break;
-		case SQUARE:
-			strcpy(wavename, "Square  ");
-			break;
-	}
+} /* very outter loop */
 
-	mvwaddstr(bot_w,1,1, "                                                         ");
-	curs_set(0);
-	wattron(mid_w,A_BOLD);
-	mvwaddstr(mid_w,1,1, "Configuration:          Value                Change");
-	mvwprintw(mid_w,14,2, "      F6                    F10            ");
-	mvwprintw(mid_w,15,2, "      F2");
-	wattroff(mid_w, A_BOLD);
-	mvwprintw(mid_w,2,2, "Initial Speed:         %3d CpM / %3d WpM" 
-					"    up/down", initialspeed, initialspeed/5);
-	mvwprintw(mid_w,3,2, "Min. character Speed:  %3d CpM / %3d WpM" 
-					"    left/right", mincharspeed, mincharspeed/5);
-	mvwprintw(mid_w,4,2, "CW rise/falltime (ms): %1.1f           " 
-					"       +/-", edge);
-	mvwprintw(mid_w,5,2, "Callsign:              %-14s" 
-					"       c", mycall);
-	mvwprintw(mid_w,6,2, "CW pitch (0 = random): %-4d"
-					"                 k/l or 0", (constanttone)?ctonefreq : 0);
-	mvwprintw(mid_w,7,2, "CW waveform:           %-8s"
-					"             w", wavename);
-	mvwprintw(mid_w,8,2, "Allow unlimited F6*:   %-3s"
-					"                  f", (f6 ? "yes" : "no"));
-	mvwprintw(mid_w,9,2, "Fixed CW speed*:       %-3s"
-					"                  s", (fixspeed ? "yes" : "no"));
-	mvwprintw(mid_w,10,2, "Unlimited attempt*:    %-3s"
-					"                  u", (unlimitedattempt ? "yes" : "no"));
-	mvwprintw(mid_w,11,2, "Callsign database:     %-15s"
-					"      d (%d)", basename(cbfilename),nrofcalls);
-#ifdef OSS
-	mvwprintw(mid_w,12,2, "DSP device:            %-15s"
-					"      e", dspdevice);
-#endif
-	mvwprintw(mid_w,14,2, "Press");
-	mvwprintw(mid_w,14,11, "to play sample CW,");
-	mvwprintw(mid_w,14,34, "to go back.");
-	mvwprintw(mid_w,15,2, "Press");
-	mvwprintw(mid_w,15,11, "to save config permanently.");
-	mvwprintw(bot_w,1,11, "* Makes scores ineligible for toplist");
-	wrefresh(mid_w);
-	wrefresh(bot_w);
-	
-	j = getch();
+	getch();
+	endwin();
+	delwin(top_w);
+	delwin(bot_w);
+	delwin(mid_w);
+	delwin(right_w);
+	getch();
+	return 0;
+}
+
+
+
+/* (formerly status == 2). Change parameters */
+
+void parameter_dialog () {
+
+int j = 0;
+
+
+update_parameter_dialog();
+
+while (j = getch()) {
 
 	switch ((int) j) {
 		case '+':							/* rise/falltime */
@@ -597,7 +578,7 @@ while (status == 2) {
 			}
 			break;
 		case 'c':
-			readline(mid_w, 5, 25, mycall, 1);
+			readline(conf_w, 5, 25, mycall, 1);
 			if (strlen(mycall) == 0) {
 				strcpy(mycall, "NOCALL");
 			}
@@ -608,7 +589,7 @@ while (status == 2) {
 			break;
 #ifdef OSS
 		case 'e':
-			readline(mid_w, 12, 25, dspdevice, 0);
+			readline(conf_w, 12, 25, dspdevice, 0);
 			if (strlen(dspdevice) == 0) {
 				strcpy(dspdevice, "/dev/dsp");
 			}
@@ -616,13 +597,13 @@ while (status == 2) {
 			break;
 #endif
 		case 'd':							/* go to database browser */
-				status = 3;
-				curs_set(1);
+			curs_set(1);
+			callbase_dialog();
 			break;
 		case KEY_F(2):
 			save_config();	
-			mvwprintw(mid_w,15,39, "Config saved!");
-			wrefresh(mid_w);
+			mvwprintw(conf_w,15,39, "Config saved!");
+			wrefresh(conf_w);
 #ifdef WIN32
 			Sleep(1000);
 #else
@@ -642,8 +623,15 @@ while (status == 2) {
 			break;
 		case KEY_F(10):
 		case KEY_F(3):
-			status = 1;
 			curs_set(1);
+			clear_parameter_display();
+			wrefresh(conf_w);
+			/* restore old windows */
+			touchwin(mid_w);
+			touchwin(bot_w);
+			wrefresh(mid_w);
+			wrefresh(bot_w);
+			return;
 	}
 
 	speed = initialspeed;
@@ -652,25 +640,98 @@ while (status == 2) {
 	if (f6 || fixspeed || unlimitedattempt) {
 		attemptvalid = 0;	
 	}
-}
 
-while (status == 3) {
+	update_parameter_dialog();
 
-	clear_display();
+} /* while 1 (return only by F3/F10) */
 
-	wattron(mid_w,A_BOLD);
-	mvwaddstr(mid_w,1,1, "Change Callsign Database");
-	wattroff(mid_w,A_BOLD);
-	mvwprintw(mid_w,3,1, ".qcb files found (in %s/share/qrq/ and ~/.qrq/):",destdir);
-/*	mvwaddstr(mid_w,3,1, ".qcb files found:");*/ 
+} /* parameter_dialog */
+
+
+/* update_parameter_dialog 
+ * repaints the whole config/parameter screen (F5) */
+
+
+void update_parameter_dialog () {
+
+	clear_parameter_display();
+	switch (waveform) {
+		case SINE:
+			strcpy(wavename, "Sine    ");
+			break;
+		case SAWTOOTH:
+			strcpy(wavename, "Sawtooth");
+			break;
+		case SQUARE:
+			strcpy(wavename, "Square  ");
+			break;
+	}
+
+	mvwaddstr(inf_w,1,1, "                                                         ");
+	curs_set(0);
+	wattron(conf_w,A_BOLD);
+	mvwaddstr(conf_w,1,1, "Configuration:          Value                Change");
+	mvwprintw(conf_w,14,2, "      F6                    F10            ");
+	mvwprintw(conf_w,15,2, "      F2");
+	wattroff(conf_w, A_BOLD);
+	mvwprintw(conf_w,2,2, "Initial Speed:         %3d CpM / %3d WpM" 
+					"    up/down", initialspeed, initialspeed/5);
+	mvwprintw(conf_w,3,2, "Min. character Speed:  %3d CpM / %3d WpM" 
+					"    left/right", mincharspeed, mincharspeed/5);
+	mvwprintw(conf_w,4,2, "CW rise/falltime (ms): %1.1f           " 
+					"       +/-", edge);
+	mvwprintw(conf_w,5,2, "Callsign:              %-14s" 
+					"       c", mycall);
+	mvwprintw(conf_w,6,2, "CW pitch (0 = random): %-4d"
+					"                 k/l or 0", (constanttone)?ctonefreq : 0);
+	mvwprintw(conf_w,7,2, "CW waveform:           %-8s"
+					"             w", wavename);
+	mvwprintw(conf_w,8,2, "Allow unlimited F6*:   %-3s"
+					"                  f", (f6 ? "yes" : "no"));
+	mvwprintw(conf_w,9,2, "Fixed CW speed*:       %-3s"
+					"                  s", (fixspeed ? "yes" : "no"));
+	mvwprintw(conf_w,10,2, "Unlimited attempt*:    %-3s"
+					"                  u", (unlimitedattempt ? "yes" : "no"));
+	mvwprintw(conf_w,11,2, "Callsign database:     %-15s"
+					"      d (%d)", basename(cbfilename),nrofcalls);
+#ifdef OSS
+	mvwprintw(conf_w,12,2, "DSP device:            %-15s"
+					"      e", dspdevice);
+#endif
+	mvwprintw(conf_w,14,2, "Press");
+	mvwprintw(conf_w,14,11, "to play sample CW,");
+	mvwprintw(conf_w,14,34, "to go back.");
+	mvwprintw(conf_w,15,2, "Press");
+	mvwprintw(conf_w,15,11, "to save config permanently.");
+	mvwprintw(inf_w,1,1, "          * Makes scores ineligible for toplist");
+	wrefresh(conf_w);
+	wrefresh(inf_w);
+	
+
+} /* update_parameter_dialog */
+
+
+
+
+void callbase_dialog () {
+
+	clear_parameter_display();
+
+	wattron(conf_w,A_BOLD);
+	mvwaddstr(conf_w,1,1, "Change Callsign Database");
+	wattroff(conf_w,A_BOLD);
+	mvwprintw(conf_w,3,1, ".qcb files found (in %s/share/qrq/ and ~/.qrq/):",destdir);
 
 	/* populate cblist */	
 	find_callbases();
 	/* selection dialog */
 	select_callbase();
-	
-	wrefresh(mid_w);
-	status = 2;	/* back to config menu */
+	wrefresh(conf_w);
+
+	nrofcalls = read_callbase();
+
+
+	return;	/* back to config menu */
 }
 
 
@@ -684,17 +745,6 @@ while (status == 3) {
 
 
 
-} /* very outter loop */
-
-	getch();
-	endwin();
-	delwin(top_w);
-	delwin(bot_w);
-	delwin(mid_w);
-	delwin(right_w);
-	getch();
-	return 0;
-}
 
 
 /* reads a callsign etc. in *win at y/x and writes it to *line */
@@ -784,7 +834,7 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 			wrefresh(top_w);
 		}
 		else if (c == KEY_F(5)) {
-			return 5;
+			parameter_dialog();
 		}
 		else if (c == KEY_F(6)) {
 			return 6;
@@ -949,6 +999,17 @@ static int clear_display() {
 	}
 	return 0;
 }
+
+/* clear parameter display */
+static int clear_parameter_display() {
+	int i;
+	for (i=1;i<16;i++) {
+		mvwprintw(conf_w,i,1,"                                 "
+										"                        ");
+	}
+	return 0;
+}
+
 
 /* write entry into toplist at the right place 
  * going down from the top of the list until the score in the current line is
@@ -1294,11 +1355,6 @@ static void *morse(void *arg) {
 		}
 	}
 
-//#ifndef PA
-//	write_audio(dsp_fd, buffer, 88200);
-//#else
-//	write_audio(dsp_fd, (int *) buffer, 44100);
-//#endif
 
 #if !defined(PA) && !defined(CA)
 	add_to_buf(buffer, 88200);
@@ -1893,8 +1949,8 @@ void select_callbase () {
 	while (strcmp(cblist[i], "")) i++;
 
 	if (!i) {
-		mvwprintw(mid_w,10,4, "No qcb-files found!");
-		wrefresh(mid_w);
+		mvwprintw(conf_w,10,4, "No qcb-files found!");
+		wrefresh(conf_w);
 #ifdef WIN32
 		Sleep(1000);
 #else
@@ -1908,21 +1964,21 @@ void select_callbase () {
 
 	/* cls */
 	for (j = 5; j < 16; j++) {
-			mvwprintw(mid_w,j,2, "                                         ");
+			mvwprintw(conf_w,j,2, "                                         ");
 	}
 
 	/* display 10 files, highlight cursor position */
 	for (j = p*10; j < (p+1)*10; j++) {
 		if (j <= i) {
 				cblist_ptr = cblist[j];
-				mvwprintw(mid_w,5+(j - p*10 ),2, "  %s       ", cblist_ptr);
+				mvwprintw(conf_w,5+(j - p*10 ),2, "  %s       ", cblist_ptr);
 		}
 		if (c == j) {						/* cursor */
-			mvwprintw(mid_w,5+(j - p*10),2, ">");
+			mvwprintw(conf_w,5+(j - p*10),2, ">");
 		}
 	}
 	
-	wrefresh(mid_w);
+	wrefresh(conf_w);
 
 	k = getch();
 
@@ -1946,7 +2002,7 @@ void select_callbase () {
 			break;
 	}
 
-	wrefresh(mid_w);
+	wrefresh(conf_w);
 
 	} /* while 1 */
 
