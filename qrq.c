@@ -187,6 +187,7 @@ int main (int argc, char *argv[]) {
   strcpy(destdir, DESTDIR);
 #endif
 
+	char abort = 0;
 	char tmp[80]="";
 	char input[15]="";
 	int i=0,j=0;						/* counter etc. */
@@ -439,23 +440,40 @@ while (status == 1) {
 		f6pressed=0;
 
 	
-		while ((j = readline(bot_w, 1, 8, input,1)) > 4) {/* F5 or F6 was pressed */
-			if (f6pressed && (f6 == 0)) {
-				continue;
-			}
-			f6pressed=1;
-			/* wait for old cwthread to finish, then send call again */
+		while (!abort && (j = readline(bot_w, 1, 8, input,1)) > 4) {/* F5..F10 pressed */
+
+			switch (j) {
+				case 6:
+				if (f6pressed && (f6 == 0)) {
+					continue;
+				}
+				f6pressed=1;
+				/* wait for old cwthread to finish, then send call again */
 			
 #ifdef WIN_THREADS
-		WaitForSingleObject(cwthread,INFINITE);
-		cwthread = (HANDLE) _beginthread( morse,0,calls[i]);
+			WaitForSingleObject(cwthread,INFINITE);
+			cwthread = (HANDLE) _beginthread( morse,0,calls[i]);
 #else
-		pthread_join(cwthread, NULL);
-		j = pthread_create(&cwthread, NULL, &morse, calls[i]);	
-		thread_fail(j);
-#endif			
+			pthread_join(cwthread, NULL);
+			j = pthread_create(&cwthread, NULL, &morse, calls[i]);	
+			thread_fail(j);
+#endif	
+					break; /* 6*/
+				case 10:	/* abort attempt */
+					abort = 1;
+					continue;
+					break;
+			}
+					
 		}
 
+		
+		if (abort) {
+			abort = 0;
+			input[0]='\0';
+			break;
+		}
+		
 		tmp[0]='\0';	
 		score += calc_score(calls[i], input, speed, tmp);
 		update_score();
@@ -849,6 +867,10 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 			return 7;
 		}
 		else if (c == KEY_F(10)) {				/* quit */
+			if (callnr) {						/* quit attempt only */
+				return 10;
+			} 
+			/* else: quit program */
 			endwin();
 			printf("Thanks for using 'qrq'!\nYou can submit your"
 					" highscore to http://fkurz.net/ham/qrqtop.php\n");
@@ -1030,6 +1052,7 @@ static int add_to_toplist(char * mycall, int score, int maxspeed) {
 	int i=0, k=0, j=0;
 	int pos = 0;		/* position where first score < our score appears */
 	int timestamp = 0;
+	int len = 32;		/* length of a line. 32 for unix, 33 for Win */
 
 	/* For the training modes */
 	if (score == 0) {
@@ -1037,43 +1060,52 @@ static int add_to_toplist(char * mycall, int score, int maxspeed) {
 	}
 
 	timestamp = (int) time(NULL);
+	sprintf(insertline, "%-10s%6d %3d %10d", mycall, score, maxspeed, timestamp);
 	
-	/* assemble scoreline to insert */
-	sprintf(insertline, "%-10s%6d %3d %10d\n", mycall, score, maxspeed, timestamp);
-	
-	if ((fh = fopen("toplist", "r+")) == NULL) {
+	if ((fh = fopen("toplist", "rb+")) == NULL) {
 		printf("Unable to open toplist file 'toplist'!\n");
 		exit(EXIT_FAILURE);
+	}
+
+	/* find out if we use CRLF or just LF */
+	fgets(tmp, 35, fh);
+	if (tmp[31] == '\r') {	/* CRLF */
+		len = 33;
+		strcat(insertline, "\r\n");
+	}
+	else {
+		len = 32;
+		strcat(insertline, "\n");
 	}
 
 	fseek(fh, 0, SEEK_END);
 	j = ftell(fh);
 
 	part1 = malloc((size_t) j);
-	part2 = malloc((size_t) j + 32);	/* one additional entry */
+	part2 = malloc((size_t) j + len);	/* one additional entry */
 
 	rewind(fh);
 
 	/* read whole toplist */
 	fread(part1, sizeof(char), (size_t) j, fh);
 
-	/* find first score below "score"; scores at positions 10 + (i*32) */
+	/* find first score below "score"; scores at positions 10 + (i*len) */
 
 	do {
 		for (i = 0 ; i < 6 ; i++) {	
-			tmp[i] = part1[i + (10 + pos*32)];
+			tmp[i] = part1[i + (10 + pos*len)];
 		}
 		k = atoi(tmp);
 		pos++;
 	} while (score < k);
  
 	/* Found it! Insert own score here! */
-	memcpy(part2, part1, 32 * (pos-1));
-	memcpy(part2 + 32 * (pos -1), insertline, 32);
-	memcpy(part2 + 32 * pos , part1 + 32 * (pos -1), j - 32 * (pos - 1));
+	memcpy(part2, part1, len * (pos-1));
+	memcpy(part2 + len * (pos - 1), insertline, len);
+	memcpy(part2 + len * pos , part1 + len * (pos -1), j - len * (pos - 1));
 
 	rewind(fh);
-	fwrite(part2, sizeof(char), (size_t) j + 32, fh);
+	fwrite(part2, sizeof(char), (size_t) j + len, fh);
 	fclose(fh);
 
 	free(part1);
@@ -1240,7 +1272,6 @@ static int read_config () {
 			printw("  line  %2d: unlim. att.:  %s\n", line, (unlimitedattempt ? "yes":"no"));
         }
 		else if (tmp == strstr(tmp,"callbase=")) {
-			fprintf(stderr, "%d\n", i);
 			while (isgraph(tmp[i] = tmp[9+i])) {
 				i++;
 			}
@@ -1464,7 +1495,7 @@ static int save_config () {
 
 	conf2 = malloc(1);
 
-	if ((fh = fopen(rcfilename, "r")) == NULL) {
+	if ((fh = fopen(rcfilename, "rb")) == NULL) {
 		endwin();
 		fprintf(stderr, "Unable to open config file '%s'!\n", rcfilename);
 		exit(EXIT_FAILURE);
@@ -1472,7 +1503,6 @@ static int save_config () {
 
 	fseek(fh, 0, SEEK_END);
 	j = (int) ftell(fh);
-
 	conf1 = malloc((size_t) j+1);
 
 	rewind(fh);
@@ -1549,6 +1579,10 @@ static int save_config () {
 		}
 		/* otherwise, add to the end */
 		else {
+			/* CR LF or LF only? */
+			if (strstr(conf1, "\r")) {
+				strcat(tmp, "\r");
+			}
 			strcat(tmp, "\n");
 			conf2len = conf1len + strlen(tmp) - 1;
 			conf2 = realloc(conf2, conf2len);
@@ -1563,7 +1597,7 @@ static int save_config () {
 		memcpy(conf1, conf2, conf1len);
 	}
 
-	if ((fh = fopen(rcfilename, "w")) == NULL) {
+	if ((fh = fopen(rcfilename, "wb")) == NULL) {
 		endwin();
 		fprintf(stderr, "Unable to open config file '%s'!\n", rcfilename);
 		exit(EXIT_FAILURE);

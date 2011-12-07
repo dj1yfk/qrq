@@ -1,6 +1,6 @@
 # qrq Makefile -- Fabian Kurz, DJ1YFK -- http://fkurz.net/ham/qrq.html
 
-VERSION=0.2.1
+VERSION=0.2.9
 DESTDIR?=/usr
 
 # set to YES if you want to use Core Audio
@@ -52,7 +52,7 @@ else ifeq ($(USE_PA), YES)
 else ifeq ($(USE_WIN32), YES)
 		CFLAGS:=$(CFLAGS) -D PA
 		LDFLAGS:=$(LDFLAGS) -lwinmm
-		OBJECTS=qrq.o pdcurses.a libpthreadGC1.a
+		OBJECTS=qrq.o qrq.res pdcurses.a libpthreadGC1.a 
 else
 		OBJECTS=qrq.o oss.o
 		LDFLAGS:=$(LDFLAGS) -lpthread -lncurses
