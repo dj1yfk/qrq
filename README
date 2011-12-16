@@ -1,4 +1,4 @@
-QRQ - yet another CW trainer - Version 0.2.1
+QRQ - yet another CW trainer - Version 0.3.0
 
 Project website: http://fkurz.net/ham/qrq.html
 -----------------------------------------------------------------------------
@@ -12,7 +12,14 @@ ability to copy callsigns at high speeds, as needed for example for Contesting.
 
 -----------------------------------------------------------------------------
 
-INSTALL:
+COMPILE / INSTALL 
+
+.-----------------------------------------.
+| Note: A Windows installer is available  |
+|       if you don't like to compile qrq  |
+|       by yourself. It can be downloaded |
+|       from http://fkurz.net/ham/qrq     |
+`-----------------------------------------'
 
 1. make [DESTDIR=/usr] [USE_PA=NO] [USE_WIN32=NO] [USE_CA=NO] [OSX_PLATFORM=NO] [OSX_BUNDLE=YES]
 
