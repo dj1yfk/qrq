@@ -1,10 +1,10 @@
-QRQ - yet another CW trainer for Linux/Unix - Version 0.2.1
+QRQ - yet another CW trainer - Version 0.2.1
 
 Project website: http://fkurz.net/ham/qrq.html
 -----------------------------------------------------------------------------
 
-qrq is an open source morse telegraphy trainer, similar to the classic DOS
-version of Rufz by DL4MM, for Linux and Unix operating systems.
+qrq is an open source Morse telegraphy trainer, similar to the classic DOS
+version of Rufz by DL4MM, for Linux, Unix, OS X and Windows. 
 
 It's not intended for learning telegraphy (have a look at radio.linux.org.au
 for CW learning software or check out http://lcwo.net/), but to improve the
@@ -14,15 +14,20 @@ ability to copy callsigns at high speeds, as needed for example for Contesting.
 
 INSTALL:
 
-1. make [DESTDIR=/usr] [USE_PA=NO] [USE_CA=NO] [OSX_PLATFORM=NO] [OSX_BUNDLE=YES]
+1. make [DESTDIR=/usr] [USE_PA=NO] [USE_WIN32=NO] [USE_CA=NO] [OSX_PLATFORM=NO] [OSX_BUNDLE=YES]
 
-Compiles qrq.  Optionally, you can compile against Pulse Audio instead of OSS.
-This will create the executable file, 'qrq' in the current directory. To run,
-qrq only needs the files 'qrqrc', 'toplist', and 'callbase.qcb', which are also
-in the current directory. 
+Compiles qrq.
+
+On Linux/Unix, you can compile against Pulse Audio instead of OSS (USE_PA=YES).
 
 If you are building for OSX set OSX_PLATFORM=YES.  If you want to create the
 release as an OSX bundle (recommended), then choose OSX_BUNDLE=YES.
+
+To compile it for Windows with MINGW32, using WinMM, use USE_WIN32=YES.
+
+The executable file, 'qrq[.exe]', will be created in the current directory.
+To run, qrq only needs the files 'qrqrc', 'toplist', and 'callbase.qcb',
+which are also in the current directory. 
 
 At your option, you can install 'qrq' globally:
 
@@ -45,9 +50,12 @@ and it will create a qrq.app bundle.
 When starting 'qrq' for the first time, it will copy 'qrqrc' and
 'toplist' to ~/.qrq/.
 
-3. Edit the configuration file 'qrqrc' according to your needs. 'qrq' first
-searches in the current directory, then in ~/.qrq/, then in /usr/share/qrq for
-this file.
+3. If you like, edit the configuration file 'qrqrc' according to your needs.
+All values can also be changed from within the program.
+
+'qrq' first searches in the current directory. On platforms other than Windows,
+~/.qrq/ and then /usr/share/qrq are also searched for these files, if they were
+not found in the current directory.
 
 4. If an older version of 'qrq' is already installed, you don't need to remove
 it first.
@@ -58,13 +66,13 @@ How to use it
 Using qrq is simple: qrq sends 50 random calls from a database. After each
 call, it waits for the user to enter what he heard and compares the entered
 callsign with the one sent. If the callsign is copied correctly, the speed is
-increased by 10CpM and full points are credited, if there were mistakes in the
-callsign entered, the speed decreases by 10CpM and (depending on how many
+increased by 10 CpM and full points are credited, if there were mistakes in the
+callsign entered, the speed decreases by 10 CpM and (depending on how many
 letters were correct) only a fraction of the maximum points are credited.
 
 A callsign can be heard again once by pressing F6, hitting F10 quits the
-program. The INS key toggles between insert and overwrite mode in the callsign
-field.
+attempt. The INS key toggles between insert and overwrite mode in the callsign
+field. Pressing F5 leads to the settings screen.
 
 The possible speed ranges from 20 CpM (4 WpM) to infinity, the initial speed
 can be set by the user.
@@ -73,11 +81,11 @@ There is a simple toplist function in qrq which makes it possible for the user
 to keep track of his training success or to compare scores with others.
 You can submit your highscores via e-Mail to mail@fkurz.net and they will
 appear on the toplist published at http://fkurz.net/ham/qrqtop.html.
-The toplist is not protected by any kind of checksum, it bases on your honesty.
+The toplist is not protected by any kind of checksum, it's based on honesty.
 
 As of version 0.0.7, the toplist file also includes a timestamp of the attempt,
 which makes it possible to keep track of your training progress. Pressing F7
-generates a graph score vs. date. Gnuplot required.
+generates a graph score vs. date (GNUplot required, not on Windows).
 
 Options can be changed in the config file qrqrc or via the options menu (F5).
 As of version 0.2.0, some additional training modes are available, which allow
