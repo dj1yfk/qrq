@@ -316,7 +316,9 @@ while (status == 1) {
 	mvwaddstr(mid_w,8,2, "errors is credited.");
 	mvwaddstr(mid_w,10,2, "F6 repeats a callsign once, F10 quits.");
 	mvwaddstr(mid_w,12,2, "Settings can be changed with F5 (or in qrqrc).");
+#ifndef WIN32
 	mvwaddstr(mid_w,14,2, "Score statistics (requires gnuplot) with F7.");
+#endif
 
 	wattron(right_w,A_BOLD);
 	mvwaddstr(right_w,1, 6, "Toplist");
@@ -360,7 +362,9 @@ while (status == 1) {
 		break;
 	}
 	else if (i == 7) {
+#ifndef WIN32
 		statistics();
+#endif
 		break;
 	}
 
@@ -498,12 +502,14 @@ while (status == 1) {
 	
 	add_to_toplist(mycall, score, maxspeed);
 	
+	curs_set(0);
 	wattron(bot_w,A_BOLD);
 	mvwprintw(bot_w,1,1, "Attempt finished. Press any key to continue!");
 	wattroff(bot_w,A_BOLD);
 	wrefresh(bot_w);
 	getch();
 	mvwprintw(bot_w,1,1, "                                            ");
+	curs_set(1);
 
 	
 } /* while (status == 1) */
@@ -744,7 +750,11 @@ void callbase_dialog () {
 	wattron(conf_w,A_BOLD);
 	mvwaddstr(conf_w,1,1, "Change Callsign Database");
 	wattroff(conf_w,A_BOLD);
+#if WIN32
+	mvwprintw(conf_w,3,1, ".qcb files found:");
+#else
 	mvwprintw(conf_w,3,1, ".qcb files found (in %s/share/qrq/ and ~/.qrq/):",destdir);
+#endif
 
 	/* populate cblist */	
 	find_callbases();
@@ -1459,7 +1469,6 @@ static int tonegen (int freq, int len, int waveform) {
 		out = out + (out<<16);	/* stereo only for OSS & CoreAudio*/
 #endif
 		add_to_buf(&out, sizeof(out));
-//		write_audio(dsp_fd, &out, sizeof(out));
 	}
 	return 0;
 }
