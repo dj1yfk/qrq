@@ -538,7 +538,7 @@ int j = 0;
 
 update_parameter_dialog();
 
-while (j = getch()) {
+while ((j = getch()) != 0) {
 
 	switch ((int) j) {
 		case '+':							/* rise/falltime */

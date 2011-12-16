@@ -1,3 +1,9 @@
+0.3.0 / 2011-12-16   Fabian Kurz <mail@fkurz.net>
+	* New platform: Windows (with MINGW), thanks to SP8QED for patches
+	* CW Settings can be changed during attempts on the fly (F5)
+	* Attempts can be aborted without aborting the whole program
+	* A pretty new icon (thanks to Victoria, SV2KBS)
+
 0.2.1 / 2011-09-19   Fabian Kurz <mail@fkurz.net>
 	* Added support for native CoreAudio on OSX.  Also builds for iOS.
 	  [tnx KB1OOO]
