@@ -252,9 +252,6 @@ int main (int argc, char *argv[]) {
 	refresh();
 	getch();
 
-//	endwin();
-//	(void) initscr();
-
 	erase();
 	refresh();
 

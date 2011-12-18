@@ -73,6 +73,7 @@ void write_audio (void *bla, int *in, int size) {
 void close_audio (void *s) {
 	int e;
 	pa_simple_write(s, buf, bufpos*sizeof(short int), &e);
+	pa_simple_drain(s, &e);
 	bufpos = 0;
 }
 
