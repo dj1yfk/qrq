@@ -42,11 +42,12 @@ void *open_dsp () {
 	}
 
 	/* The Sample format to use */
-	static const pa_sample_spec ss = {
+	static pa_sample_spec ss = {
 		.format = PA_SAMPLE_S16LE,
-		.rate = 44100,
+		.rate = 8000,
 		.channels = 1
 	};
+	ss.rate = samplerate;
 	pa_simple *s = NULL;
 	int error;
 

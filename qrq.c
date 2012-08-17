@@ -1069,8 +1069,8 @@ static int add_to_toplist(char * mycall, int score, int maxspeed) {
 	timestamp = (int) time(NULL);
 	sprintf(insertline, "%-10s%6d %3d %10d", mycall, score, maxspeed, timestamp);
 	
-	if ((fh = fopen("toplist", "rb+")) == NULL) {
-		printf("Unable to open toplist file 'toplist'!\n");
+	if ((fh = fopen(tlfilename, "rb+")) == NULL) {
+		printf("Unable to open toplist file %s!\n", tlfilename);
 		exit(EXIT_FAILURE);
 	}
 
@@ -1292,6 +1292,14 @@ static int read_config () {
 								"Using default >%s<.\n", line, tmp, cbfilename);
 			}
 		}
+		else if (tmp == strstr(tmp,"samplerate=")) {
+			while (isdigit(tmp[i] = tmp[11+i])) {
+				i++;
+			}
+			tmp[i]='\0';
+			samplerate = atoi(tmp);
+			printw("  line  %2d: sample rate: %d\n", line, samplerate);
+		}
 	}
 
 	printw("Finished reading qrqrc.\n");
@@ -1330,7 +1338,7 @@ static void *morse(void *arg) {
 	full_bufpos = 0; 
 
 	/* Some silence; otherwise the call starts right after pressing enter */
-	tonegen(0, 11025, SILENCE);
+	tonegen(0, samplerate/4, SILENCE);
 
 	/* Farnsworth? */
 	if (speed < mincharspeed) {
