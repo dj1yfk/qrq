@@ -79,14 +79,15 @@ letters were correct) only a fraction of the maximum points are credited.
 
 A callsign can be heard again once by pressing F6, hitting F10 quits the
 attempt. The INS key toggles between insert and overwrite mode in the callsign
-field. Pressing F5 leads to the settings screen.
+field. Pressing F5 leads to the settings screen. The _previous_ callsign
+can be reheard by pressing F7.
 
 The possible speed ranges from 20 CpM (4 WpM) to infinity, the initial speed
 can be set by the user.
 
 There is a simple toplist function in qrq which makes it possible for the user
 to keep track of his training success or to compare scores with others.
-You can submit your highscores via e-Mail to mail@fkurz.net and they will
+You can submit your highscores via e-Mail to fabian@fkurz.net and they will
 appear on the toplist published at http://fkurz.net/ham/qrqtop.html.
 The toplist is not protected by any kind of checksum, it's based on honesty.
 
@@ -119,4 +120,4 @@ Contact, Feedback
 
 I am always interested in any kind of feedback concerning qrq.
 If you have any suggestions, questions, feature-requests etc., don't hesitate
-a minute and contact the author: Fabian Kurz, DJ1YFK <mail@fkurz.net>.
+a minute and contact the author: Fabian Kurz, DJ1YFK <fabian@fkurz.net>.

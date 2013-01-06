@@ -1,6 +1,6 @@
 /* 
 qrq - High speed morse trainer, similar to the DOS classic "Rufz"
-Copyright (C) 2006-2011  Fabian Kurz
+Copyright (C) 2006-2013  Fabian Kurz
 
 $Id$
 
@@ -190,7 +190,9 @@ int main (int argc, char *argv[]) {
 	char abort = 0;
 	char tmp[80]="";
 	char input[15]="";
-	int i=0,j=0;						/* counter etc. */
+	int i=0,j=0,k=0;						/* counter etc. */
+	char previouscall[80]="";
+	int previousfreq = 0;
 	int f6pressed=0;
 
 	if (argc > 1) {
@@ -204,7 +206,7 @@ int main (int argc, char *argv[]) {
 	keypad(stdscr, TRUE);
 	scrollok(stdscr, FALSE);
 	
-	printw("qrq v%s - Copyright (C) 2006-2011 Fabian Kurz, DJ1YFK\n", VERSION);
+	printw("qrq v%s - Copyright (C) 2006-2013 Fabian Kurz, DJ1YFK\n", VERSION);
 	printw("This is free software, and you are welcome to redistribute it\n");
 	printw("under certain conditions (see COPYING).\n");
 
@@ -440,11 +442,10 @@ while (status == 1) {
 		
 		f6pressed=0;
 
-	
 		while (!abort && (j = readline(bot_w, 1, 8, input,1)) > 4) {/* F5..F10 pressed */
 
 			switch (j) {
-				case 6:
+				case 6:		/* repeat call */
 				if (f6pressed && (f6 == 0)) {
 					continue;
 				}
@@ -460,6 +461,26 @@ while (status == 1) {
 			thread_fail(j);
 #endif	
 					break; /* 6*/
+				case 7:		/* repeat _previous_ call */
+					if (callnr > 1) {
+						k = freq;
+						freq = previousfreq;
+#ifdef WIN_THREADS
+			WaitForSingleObject(cwthread,INFINITE);
+			cwthread = (HANDLE) _beginthread( morse,0,previouscall);
+			WaitForSingleObject(cwthread,INFINITE);
+#else
+			pthread_join(cwthread, NULL);
+			j = pthread_create(&cwthread, NULL, &morse, previouscall);	
+			thread_fail(j);
+			pthread_join(cwthread, NULL);
+#endif	
+						/* NB: We must wait for the CW thread before
+						 * we set the freq back -- this blocks keyboard
+						 * input, but in this case it shouldn't matter */
+						freq = k;
+					}
+					break;
 				case 10:	/* abort attempt */
 					abort = 1;
 					continue;
@@ -482,6 +503,8 @@ while (status == 1) {
 				show_error(calls[i], tmp);
 		}
 		input[0]='\0';
+		strncpy(previouscall, calls[i], 80);
+		previousfreq = freq;
 		calls[i] = NULL;
 	}
 
@@ -2067,7 +2090,7 @@ void select_callbase () {
 
 
 void help () {
-		printf("qrq v%s  (c) 2006-2011 Fabian Kurz, DJ1YFK. "
+		printf("qrq v%s  (c) 2006-2013 Fabian Kurz, DJ1YFK. "
 					"http://fkurz.net/ham/qrq.html\n", VERSION);
 		printf("High speed morse telegraphy trainer, similar to"
 					" RUFZ.\n\n");

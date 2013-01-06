@@ -1,8 +1,8 @@
-0.3.1 / 2012-08-16   Fabian Kurz <fabian@fkurz.net>
+0.3.1 / 2013-01-06   Fabian Kurz <fabian@fkurz.net>
 	* Fixed saving scores if toplist file is not in cwd (tnx ON4ACP)
+	* F7 repeats the _previous_ callsign/word (suggested by KU1T)
 	* The sample rate can be set via qrqrc now.
 	* Minor bugfixes in PulseAudio output
-
 
 0.3.0 / 2011-12-18   Fabian Kurz <mail@fkurz.net>
 	* New platform: Windows (with MINGW), thanks to SP8QED for patches
