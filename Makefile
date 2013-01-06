@@ -8,7 +8,7 @@ DESTDIR?=/usr
 USE_CA=NO
 
 # set to YES if you want to use PulseAudio instead of OSS
-USE_PA=NO
+USE_PA=YES
 
 # set to YES if you compile with MINGW32
 USE_WIN32=NO
