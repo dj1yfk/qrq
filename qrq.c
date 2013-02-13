@@ -927,6 +927,9 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 		wrefresh(win);
 	}
 	curs_set(FALSE);
+	for (i = 0; i < nrofcalls; i++)
+		free(calls[i]);
+	free(calls);
 	return 0;
 }
 
@@ -1926,8 +1929,8 @@ int read_callbase () {
 	}
 
 	/* allocate memory for calls array, free if needed */
-
-	free(calls);
+	if (calls)
+		free(calls);
 
 	if ((calls = (char **) malloc( (size_t) sizeof(char *)*nr )) == NULL) {
 		fprintf(stderr, "Error: Couldn't allocate %d bytes!\n", 

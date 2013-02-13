@@ -1,6 +1,6 @@
 # qrq Makefile -- Fabian Kurz, DJ1YFK -- http://fkurz.net/ham/qrq.html
 
-VERSION=0.3.1
+VERSION=0.3.2
 DESTDIR?=/usr
 
 # set to YES if you want to use Core Audio
