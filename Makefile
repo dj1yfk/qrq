@@ -47,7 +47,7 @@ ifeq ($(USE_CA), YES)
 		endif
 else ifeq ($(USE_PA), YES)
 		CFLAGS:=$(CFLAGS) -D PA -pthread
-		LDFLAGS:=$(LDFLAGS) -lpulse-simple -lpulse -lncurses
+		LDFLAGS:=$(LDFLAGS) -lpthread -lpulse-simple -lpulse -lncurses
 		OBJECTS=qrq.o pulseaudio.o
 else ifeq ($(USE_WIN32), YES)
 		CFLAGS:=$(CFLAGS) -D PA
