@@ -32,6 +32,11 @@ Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <ctype.h>
 #include <time.h> 
 #include <limits.h> 			/* PATH_MAX */
+
+#ifndef PATH_MAX				/* Not defined e.g. on GNU/hurd */
+#define PATH_MAX 4096 
+#endif
+
 #include <dirent.h>
 #include <math.h>
 #include <fcntl.h>
