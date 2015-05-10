@@ -22,7 +22,7 @@ Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define QRQ_PA
 
 void *open_dsp (); 
-void write_audio (void *bla, int *in, size_t size);
+void write_audio (void *unused, int *in, int size);
 void close_audio (void *s);
 
 #endif
