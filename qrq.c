@@ -1333,6 +1333,8 @@ static int read_config () {
 		}
 	}
 
+	fclose(fh);
+
 	printw("Finished reading qrqrc.\n");
 	return 0;
 }
