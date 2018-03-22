@@ -143,14 +143,13 @@ clean:
 	rm -rf qrq.app
 
 dist:
-	sed 's/Version [0-9].[0-9].[0-9]/Version $(VERSION)/g' README > README2
-	rm -f README
-	mv README2 README
-	rm -f releases/qrq-$(VERSION).tar.gz
-	rm -rf releases/qrq-$(VERSION)
+	sed 's/Version [0-9].[0-9].[0-9]/Version $(VERSION)/g' ../README > README
+	mkdir -p ../releases
+	rm -f ../releases/qrq-$(VERSION).tar.gz
+	rm -rf ../releases/qrq-$(VERSION)
 	mkdir qrq-$(VERSION)
 	cp qrq.png qrqscore qrq.c qrqrc callbase.qcb toplist \
-		AUTHORS ChangeLog README COPYING qrq.1 Makefile \
+		../AUTHORS ../ChangeLog ../README ../COPYING qrq.1 Makefile \
 		english.qcb qrq.ico qrq.rc \
 		qrq-$(VERSION)
 	cp coreaudio.c coreaudio.h oss.c oss.h \
@@ -159,7 +158,7 @@ dist:
 	cp -r OSXExtras qrq-$(VERSION)
 	rm -rf qrq-$(VERSION)/OSXExtras/.svn/
 	tar -zcf qrq-$(VERSION).tar.gz qrq-$(VERSION)
-	mv qrq-$(VERSION) releases/
-	mv qrq-$(VERSION).tar.gz releases/
-	md5sum releases/*.gz > releases/md5sums.txt
+	mv qrq-$(VERSION) ../releases/
+	mv qrq-$(VERSION).tar.gz ../releases/
+	md5sum ../releases/*.gz > ../releases/md5sums.txt
 
