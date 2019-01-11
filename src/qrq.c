@@ -1933,8 +1933,14 @@ int read_callbase () {
 	}
 
 	/* allocate memory for calls array, free if needed */
-	if (calls)
-		free(calls);
+    if (calls) {
+        for (i = 0; i < nrofcalls; i++) {
+            free(calls[i]);
+            calls[i] = NULL;
+        }
+        free(calls);
+        calls = NULL;
+    }
 
 	if ((calls = (char **) malloc( (size_t) sizeof(char *)*nr )) == NULL) {
 		fprintf(stderr, "Error: Couldn't allocate %d bytes!\n", 
