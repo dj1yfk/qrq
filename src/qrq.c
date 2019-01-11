@@ -832,7 +832,7 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 			break;
 
 		if (((c > 64 && c < 91) || (c > 96 && c < 123) || (c > 47 && c < 58)
-					 || c == '/') && strlen(line) < 14) {
+					 || c == '/' || c == ' ') && strlen(line) < 14) {
 	
 			line[strlen(line)+1]='\0';
 			if (capitals) {
@@ -1412,6 +1412,9 @@ static void *morse(void *arg) {
 		else if (c == '+') {
 			code = ".-.-.";
 		}
+        else if (c == ' ') {        /* space */
+            code = " ";
+        }
 		else {						/* not supposed to happen! */
 			code = "..--..";
 		}
@@ -1424,10 +1427,13 @@ static void *morse(void *arg) {
 				tonegen(freq, dotlen + ed, waveform);
 				tonegen(0, fulldotlen - ed, SILENCE);
 			}
-			else {
+			else if (c == '-') {
 				tonegen(freq, dashlen + ed, waveform);
 				tonegen(0, fulldotlen - ed, SILENCE);
 			}
+            else {  /* space */
+				tonegen(0, dotlen, SILENCE);
+            }
 		}
 		if (farnsworth) {
 			tonegen(0, 3*fwdotlen - fulldotlen, SILENCE);
