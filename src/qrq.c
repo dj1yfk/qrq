@@ -932,9 +932,6 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 		wrefresh(win);
 	}
 	curs_set(FALSE);
-	for (i = 0; i < nrofcalls; i++)
-		free(calls[i]);
-	free(calls);
 	return 0;
 }
 
