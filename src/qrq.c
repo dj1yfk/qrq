@@ -17,9 +17,12 @@ You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+Edited on 2/4/2017 by Michael Fluegemann KE8AQW.  Fixed the hanging issue on Windows computers by changing _beginthread() to _beginthreadex() and using CloseHandle() to end thread.
+
 */ 
 #if WIN32
 #define WIN_THREADS
+typedef int AUDIO_HANDLE;
 #endif
 
 #ifndef WIN_THREADS
@@ -44,6 +47,7 @@ Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <sys/stat.h>			/* mkdir */
 #include <sys/types.h>
 #include <errno.h>
+#include <stdio.h>
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -281,7 +285,7 @@ int main (int argc, char *argv[]) {
 	keypad(conf_w, TRUE);
 
 #ifdef WIN_THREADS
-	cwthread = (HANDLE) _beginthread( morse,0,"QRQ");
+	cwthread = (HANDLE) _beginthreadex( NULL, 0, morse,"QRQ",0, NULL);
 #else
 	/* no need to join here, this is the first possible time CW is sent */
 	pthread_create(&cwthread, NULL, & morse, (void *) "QRQ");
@@ -357,7 +361,8 @@ while (status == 1) {
 		freq = constanttone ? ctonefreq : 800;
 #ifdef WIN_THREADS
 		 WaitForSingleObject(cwthread,INFINITE);
-		 cwthread = (HANDLE) _beginthread( morse,0,"VVVTEST");
+		 CloseHandle(cwthread);
+		 cwthread = (HANDLE) _beginthreadex( NULL, 0, morse,"VVVTEST",0, NULL);
 #else
 		pthread_join(cwthread, NULL);
 		j = pthread_create(&cwthread, NULL, &morse, (void *) "VVVTEST");	
@@ -405,6 +410,7 @@ while (status == 1) {
 		 * necessary. */
 #ifdef WIN_THREADS
 		WaitForSingleObject(cwthread,INFINITE);
+		CloseHandle(cwthread);
 #else
 		pthread_join(cwthread, NULL);
 #endif	
@@ -439,7 +445,7 @@ while (status == 1) {
 		
 		sending_complete = 0;	
 #ifdef WIN_THREADS
-		cwthread = (HANDLE) _beginthread( morse,0,calls[i]);
+		cwthread = (HANDLE) _beginthreadex( NULL, 0, morse,calls[i],0, NULL);
 #else
 		j = pthread_create(&cwthread, NULL, morse, calls[i]);	
 		thread_fail(j);		
@@ -459,7 +465,8 @@ while (status == 1) {
 			
 #ifdef WIN_THREADS
 			WaitForSingleObject(cwthread,INFINITE);
-			cwthread = (HANDLE) _beginthread( morse,0,calls[i]);
+			CloseHandle(cwthread);
+			cwthread = (HANDLE) _beginthreadex( NULL, 0, morse,calls[i],0, NULL);
 #else
 			pthread_join(cwthread, NULL);
 			j = pthread_create(&cwthread, NULL, &morse, calls[i]);	
@@ -472,8 +479,10 @@ while (status == 1) {
 						freq = previousfreq;
 #ifdef WIN_THREADS
 			WaitForSingleObject(cwthread,INFINITE);
-			cwthread = (HANDLE) _beginthread( morse,0,previouscall);
+			CloseHandle(cwthread);
+			cwthread = (HANDLE) _beginthreadex( NULL, 0, morse,previouscall,0, NULL);
 			WaitForSingleObject(cwthread,INFINITE);
+			CloseHandle(cwthread);
 #else
 			pthread_join(cwthread, NULL);
 			j = pthread_create(&cwthread, NULL, &morse, previouscall);	
@@ -501,7 +510,7 @@ while (status == 1) {
 			break;
 		}
 		
-		tmp[0]='\0';	
+		tmp[0]='\0';
 		score += calc_score(calls[i], input, speed, tmp);
 		update_score();
 		if (strcmp(tmp, "*")) {			/* made an error */
@@ -518,7 +527,8 @@ while (status == 1) {
 	
 #ifdef WIN_THREADS
 		 WaitForSingleObject(cwthread,INFINITE);
-		 cwthread = (HANDLE) _beginthread( morse,0,"+");
+		 CloseHandle(cwthread);
+		 cwthread = (HANDLE) _beginthreadex( NULL, 0, morse,"+",0, NULL);
 #else
 		pthread_join(cwthread, NULL);
 		j = pthread_create(&cwthread, NULL, &morse, (void *) "+");	
@@ -667,7 +677,8 @@ while ((j = getch()) != 0) {
 			freq = constanttone ? ctonefreq : 800;
 #ifdef WIN_THREADS
 		 WaitForSingleObject(cwthread,INFINITE);
-		 cwthread = (HANDLE) _beginthread( morse,0,"TESTING");
+		 CloseHandle(cwthread);
+		 cwthread = (HANDLE) _beginthreadex( NULL, 0, morse,"TESTING",0, NULL);
 #else
 		pthread_join(cwthread, NULL);
 		j = pthread_create(&cwthread, NULL, &morse, (void *) "TESTING");	
@@ -913,8 +924,10 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 			speed = 200; freq = 800;
 #ifdef WIN_THREADS
 		 WaitForSingleObject(cwthread,INFINITE);
-		 cwthread = (HANDLE) _beginthread( morse,0,"73");
+		 CloseHandle(cwthread);
+		 cwthread = (HANDLE) _beginthreadex( NULL, 0, morse,"73",0, NULL);
 		 WaitForSingleObject(cwthread,INFINITE);
+		 CloseHandle(cwthread);
 #else
 		pthread_join(cwthread, NULL);
 		j = pthread_create(&cwthread, NULL, &morse, (void *) "73");	

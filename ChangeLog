@@ -1,3 +1,7 @@
+0.3.2 / 2019-01-     Fabian Kurz <fabian@fkurz.net>
+    * Fixed occasional crashes on Windows (tnx Michael Fluegemann KE8AQW)
+	* Allow spaces in words/"callsigns" (requested by several users)
+
 0.3.1 / 2013-01-06   Fabian Kurz <fabian@fkurz.net>
 	* Fixed saving scores if toplist file is not in cwd (tnx ON4ACP)
 	* F7 repeats the _previous_ callsign/word (suggested by KU1T)
