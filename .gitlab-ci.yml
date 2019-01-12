@@ -1,0 +1,56 @@
+image: dj1yfk/yfkbuild:latest
+
+stages:
+    - build
+    - package
+
+build_linux:
+    stage: build
+    tags:
+        - docker
+    script:
+        - pwd
+        - cd src
+        - ls -la
+        - make
+        - ls -ls
+
+    artifacts:
+        expire_in: 1 year
+        paths:
+            - src/qrq
+
+build_win32:
+    stage: build
+    tags:
+        - docker
+    script:
+        - pwd
+        - cd src
+        - wget https://invisible-mirror.net/archives/ncurses/win32/mingw32.zip
+        - unzip mingw32.zip
+        - ls -la
+        - make USE_WIN32=YES USE_PA=NO
+        - mv qrq qrq.exe
+        - ls -ls
+
+    artifacts:
+        expire_in: 1 year
+        paths:
+            - src/qrq.exe
+
+package_source:
+    stage: package
+    tags:
+        - docker
+    script:
+        - pwd
+        - cd src
+        - ls -la
+        - make dist
+        - cd ../releases
+        - ls -ltra
+    artifacts:
+        expire_in: 1 year
+        paths:
+            - releases/qrq-*.tar.gz
