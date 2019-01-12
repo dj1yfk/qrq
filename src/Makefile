@@ -50,14 +50,15 @@ else ifeq ($(USE_PA), YES)
 		LDFLAGS:=$(LDFLAGS) -lpthread -lpulse-simple -lpulse -lncurses
 		OBJECTS=qrq.o pulseaudio.o
 else ifeq ($(USE_WIN32), YES)
-		CFLAGS:=$(CFLAGS) -D PA
-		LDFLAGS:=$(LDFLAGS) -lwinmm
-		OBJECTS=qrq.o qrq.res pdcurses.a libpthreadGC1.a 
+		CC=i686-w64-mingw32-gcc-posix
+		CFLAGS:=$(CFLAGS) -D WIN32 -Iinclude -Iinclude/ncursesw
+		LDFLAGS:=$(LDFLAGS) -lwinmm -lpthread
+		OBJECTS=qrq.o qrq.res lib/libncursesw.a
 else
 		OBJECTS=qrq.o oss.o
 		LDFLAGS:=$(LDFLAGS) -lpthread -lncurses
 		CFLAGS:=$(CFLAGS) -D OSS
-endif	
+endif
 
 all: qrq
 
@@ -139,7 +140,7 @@ package: qrq
 	$(SSH) $(IPHONE_HOST) "dpkg -i /tmp/cydiastore_com.kb1ooo.qrq_v$(shell grep ^Version: control | cut -d ' ' -f 2).deb"
 
 clean:
-	rm -f qrq toplist-old *~ *.o
+	rm -f qrq.exe qrq toplist-old *~ *.o
 	rm -rf qrq.app
 
 dist:
@@ -149,7 +150,7 @@ dist:
 	rm -rf ../releases/qrq-$(VERSION)
 	mkdir qrq-$(VERSION)
 	cp qrq.png qrqscore qrq.c qrqrc callbase.qcb toplist \
-		../AUTHORS ../ChangeLog ../README ../COPYING qrq.1 Makefile \
+		../AUTHORS ../ChangeLog README ../COPYING qrq.1 Makefile \
 		english.qcb qrq.ico qrq.rc \
 		qrq-$(VERSION)
 	cp coreaudio.c coreaudio.h oss.c oss.h \
