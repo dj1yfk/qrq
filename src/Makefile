@@ -150,7 +150,7 @@ dist:
 	rm -rf ../releases/qrq-$(VERSION)
 	mkdir qrq-$(VERSION)
 	cp qrq.png qrqscore qrq.c qrqrc callbase.qcb toplist \
-		../AUTHORS ../ChangeLog README ../COPYING qrq.1 Makefile \
+		../AUTHORS ../ChangeLog README ../COPYING qrq.1 Makefile qrqinstaller.nsi \
 		english.qcb qrq.ico qrq.rc \
 		qrq-$(VERSION)
 	cp coreaudio.c coreaudio.h oss.c oss.h \

@@ -4,6 +4,10 @@ stages:
     - build
     - package
 
+before_script:
+    - VERSION=`awk -F= '/^VERSION=/{print $2}' src/Makefile`
+    - echo qrq version $VERSION
+
 build_linux:
     stage: build
     tags:
@@ -33,14 +37,13 @@ build_win32:
         - make USE_WIN32=YES USE_PA=NO
         - mv qrq qrq.exe
         - ls -ls
-
     artifacts:
         expire_in: 1 year
         paths:
             - src/qrq.exe
 
-package_source:
-    stage: package
+build_release_package:
+    stage: build 
     tags:
         - docker
     script:
@@ -53,4 +56,25 @@ package_source:
     artifacts:
         expire_in: 1 year
         paths:
-            - releases/qrq-*.tar.gz
+            - releases/
+
+make_installer:
+    stage: package
+    tags:
+        - docker
+    dependencies:
+        - build_win32
+        - build_release_package
+    script:
+        - ls -la
+        - ls -la releases
+        - cd releases/qrq-$VERSION
+        - cp ../../src/qrq.exe .
+        - ls -la
+        - sed -i "s/_VERSION_/$VERSION/" qrqinstaller.nsi
+        - makensis qrqinstaller.nsi
+        - ls -la
+    artifacts:
+        expire_in: 1 year
+        paths:
+            - releases/qrq-*/qrq-*.exe
