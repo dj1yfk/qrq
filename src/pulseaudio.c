@@ -29,7 +29,8 @@ PulseAudio specific functions and includes.
 extern long samplerate;
 extern void  *dsp_fd;
 
-short int buf[441000];		/* 10 secs buffer */
+short int *buf = 0;
+int bufsize = 0;
 int bufpos = 0;
 
 void *open_dsp () {
@@ -64,8 +65,13 @@ void *open_dsp () {
 /* actually just puts samples into the buffer that is played at the end 
 (close_audio) */
 void write_audio (void *bla, int *in, int size) {
+	int sample_count = size/sizeof(int);
 	int i = 0;
-	for (i=0; i < size/sizeof(int); i++) {
+	if(bufsize <= bufpos + sample_count) {
+		buf = realloc(buf, (bufpos + sample_count) * sizeof(short int));
+		bufsize = bufpos + sample_count;
+	}
+	for (i=0; i < sample_count; i++) {
 		buf[bufpos] = (short int) in[i];
 		bufpos++;
 	}	
