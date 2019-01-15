@@ -17,8 +17,6 @@ You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-Edited on 2/4/2017 by Michael Fluegemann KE8AQW.  Fixed the hanging issue on Windows computers by changing _beginthread() to _beginthreadex() and using CloseHandle() to end thread.
-
 */ 
 #if WIN32
 #define WIN_THREADS
@@ -1914,7 +1912,7 @@ static int statistics () {
 		fclose(fh);
 		fclose(fh2);
 
-		system("gnuplot /tmp/qrq-plot 2> /dev/null &");
+		system("gnuplot -p /tmp/qrq-plot 2> /dev/null &");
 	return 0;
 }
 
