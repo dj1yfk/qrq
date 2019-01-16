@@ -1,8 +1,7 @@
 /* 
 qrq - High speed morse trainer, similar to the DOS classic "Rufz"
-Copyright (C) 2006-2013  Fabian Kurz
 
-$Id$
+Copyright (C) 2006-2019  Fabian Kurz and contributors
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -2128,7 +2127,10 @@ void help () {
 						" redistribute it\n");
 		printf("under certain conditions (see COPYING).\n\n");
 		printf("Start 'qrq' without any command line arguments for normal"
-					" operation.\n");
+					" operation.\n\n");
+#ifdef BUILD_INFO
+        printf("Build info for this executable:\n%s\n", BUILD_INFO);
+#endif
 		exit(0);
 }
 
