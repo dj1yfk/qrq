@@ -5,7 +5,7 @@ stages:
     - package
 
 before_script:
-    - VERSION=`awk -F= '/^VERSION=/{print $2}' src/Makefile`
+    - VERSION=`awk -F= '/^VERSION\?=/{print $2}' src/Makefile`
     - echo qrq version $VERSION
 
 build_linux:
