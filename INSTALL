@@ -1,0 +1,77 @@
+qrq build / installation instructions
+-------------------------------------
+
+.------------------------------------------.
+| Note: A Windows installer is available   |
+|       if you don't like to compile qrq   |
+|       by yourself. It can be downloaded  |
+|       from https://fkurz.net/ham/qrq     |
+|                                          |
+|       qrq is also available as a package |
+|       in Debian, Ubuntu and FreeBSD      |
+`------------------------------------------'
+
+"qrq" can be built for several operating systems, such as 
+Linux, FreeBSD, MacOS and Windows.
+
+The main dependencies are:
+ * ncurses 
+ * libpulse-dev
+
+A Dockerfile to build a Docker image in which qrq can be compiled
+for Linux and Win32 is available at: https://git.fkurz.net/dj1yfk/yfkbuild
+Even if you don't use this Docker image, you can check which dependencies are
+needed from the Dockerfile. These are essentially libncurses5-dev and
+libpulse-dev. There's also a .gitlab-ci.yml file contained in the repository
+which will produce builds for Linux and Win32.
+
+
+Step by Step instructions
+-------------------------
+
+1. make [DESTDIR=/usr] [USE_PA=NO] [USE_WIN32=NO] [USE_CA=NO] [OSX_PLATFORM=NO] [OSX_BUNDLE=YES]
+
+Compiles qrq.
+
+On Linux/Unix, you can compile against Pulse Audio instead of OSS (USE_PA=YES).
+
+If you are building for OSX set OSX_PLATFORM=YES.  If you want to create the
+release as an OSX bundle (recommended), then choose OSX_BUNDLE=YES.
+
+To compile it for Windows with MINGW32, using WinMM, use USE_WIN32=YES.
+
+The executable file, 'qrq[.exe]', will be created in the current directory.
+To run, qrq only needs the files 'qrqrc', 'toplist', and 'callbase.qcb',
+which are also in the current directory. 
+
+At your option, you can install 'qrq' globally:
+
+2. make install [DESTDIR=/usr] [USE_CA=NO] [OSX_PLATFORM=NO] [OSX_BUNDLE=YES]
+
+By default, DESTDIR=/usr, so the executable will be in /usr/bin, the
+callsign database in /usr/share/qrq/ and so on.  You can specify any
+other destination directory. However, if you build for OSX and have
+OSX_BUNDLE=YES, then make install will *not* install into DESTDIR but
+will instead make a bundle called qrq.app in the current directory.
+You can then drag and drop the qrq.app into your Applications folder if
+you wish. 
+
+So to compile for OSX run
+
+make install USE_PA=NO USE_CA=YES OSX_PLATFORM=YES OSX_BUNDLE=YES
+
+and it will create a qrq.app bundle. 
+
+When starting 'qrq' for the first time, it will copy 'qrqrc' and
+'toplist' to ~/.qrq/.
+
+3. If you like, edit the configuration file 'qrqrc' according to your needs.
+All values can also be changed from within the program.
+
+'qrq' first searches in the current directory. On platforms other than Windows,
+~/.qrq/ and then /usr/share/qrq are also searched for these files, if they were
+not found in the current directory.
+
+4. If an older version of 'qrq' is already installed, you don't need to remove
+it first.
+
