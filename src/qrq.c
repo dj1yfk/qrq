@@ -1,8 +1,7 @@
 /* 
 qrq - High speed morse trainer, similar to the DOS classic "Rufz"
-Copyright (C) 2006-2013  Fabian Kurz
 
-$Id$
+Copyright (C) 2006-2019  Fabian Kurz and contributors
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -16,8 +15,6 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
 Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-Edited on 2/4/2017 by Michael Fluegemann KE8AQW.  Fixed the hanging issue on Windows computers by changing _beginthread() to _beginthreadex() and using CloseHandle() to end thread.
 
 */ 
 #if WIN32
@@ -1914,7 +1911,7 @@ static int statistics () {
 		fclose(fh);
 		fclose(fh2);
 
-		system("gnuplot /tmp/qrq-plot 2> /dev/null &");
+		system("gnuplot -p /tmp/qrq-plot 2> /dev/null &");
 	return 0;
 }
 
@@ -2130,7 +2127,10 @@ void help () {
 						" redistribute it\n");
 		printf("under certain conditions (see COPYING).\n\n");
 		printf("Start 'qrq' without any command line arguments for normal"
-					" operation.\n");
+					" operation.\n\n");
+#ifdef BUILD_INFO
+        printf("Build info for this executable:\n%s\n", BUILD_INFO);
+#endif
 		exit(0);
 }
 

@@ -1,6 +1,9 @@
-0.3.2 / 2019-01-     Fabian Kurz <fabian@fkurz.net>
+0.3.2 / 2019-03-09   Fabian Kurz <fabian@fkurz.net>
     * Fixed occasional crashes on Windows (tnx Michael Fluegemann KE8AQW)
 	* Allow spaces in words/"callsigns" (requested by several users)
+	* Fix segfault on very slow CW speeds (closes debian bug#825862, tnx DJ3EI)
+	* Call gnuplot with -p (persist) so the window stays open
+	* This version contains a .gitlab-ci.yml file with build instructions.
 
 0.3.1 / 2013-01-06   Fabian Kurz <fabian@fkurz.net>
 	* Fixed saving scores if toplist file is not in cwd (tnx ON4ACP)

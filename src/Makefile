@@ -1,6 +1,6 @@
 # qrq Makefile -- Fabian Kurz, DJ1YFK -- http://fkurz.net/ham/qrq.html
 
-VERSION=0.3.2
+VERSION?=0.3.2
 DESTDIR?=/usr
 
 # set to YES if you want to use Core Audio
@@ -25,8 +25,17 @@ ifneq ($(OSX_PLATFORM), YES)
 		OSX_BUNDLE=NO
 endif
 
-CFLAGS:=$(CFLAGS) -D DESTDIR=\"$(DESTDIR)\" -D VERSION=\"$(VERSION)\" -I.
-CC=gcc
+ifeq ($(USE_WIN32), YES)
+	CC=i686-w64-mingw32-gcc-posix
+else
+	CC=gcc
+endif
+
+# build information may be added by CI scripts and will be
+# displayed in the help text (qrq -h)
+BUILD_INFO=" Date: $(shell date --iso=seconds)\n Branch $(shell git symbolic-ref --short HEAD) / commit $(shell git rev-parse --verify HEAD)\n by $(USER)@$(shell hostname -f)\n OS: $(shell uname -s -r -p)\n Compiler: $(shell $(CC) --version | head -1)"
+
+CFLAGS:=$(CFLAGS) -D DESTDIR=\"$(DESTDIR)\" -D BUILD_INFO=\"$(BUILD_INFO)\" -D VERSION=\"$(VERSION)\" -I.
 
 ifeq ($(USE_CA), YES)
 		OBJECTS=qrq.o coreaudio.o
@@ -50,7 +59,6 @@ else ifeq ($(USE_PA), YES)
 		LDFLAGS:=$(LDFLAGS) -lpthread -lpulse-simple -lpulse -lncurses
 		OBJECTS=qrq.o pulseaudio.o
 else ifeq ($(USE_WIN32), YES)
-		CC=i686-w64-mingw32-gcc-posix
 		CFLAGS:=$(CFLAGS) -D WIN32 -Iinclude -Iinclude/ncursesw
 		LDFLAGS:=$(LDFLAGS) -lwinmm -lpthread
 		OBJECTS=qrq.o qrq.res lib/libncursesw.a
@@ -140,7 +148,7 @@ package: qrq
 	$(SSH) $(IPHONE_HOST) "dpkg -i /tmp/cydiastore_com.kb1ooo.qrq_v$(shell grep ^Version: control | cut -d ' ' -f 2).deb"
 
 clean:
-	rm -f qrq.exe qrq toplist-old *~ *.o
+	rm -f qrq.exe qrq toplist-old *~ *.o README
 	rm -rf qrq.app
 
 dist:
