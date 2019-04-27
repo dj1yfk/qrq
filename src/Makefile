@@ -33,7 +33,8 @@ endif
 
 # build information may be added by CI scripts and will be
 # displayed in the help text (qrq -h)
-BUILD_INFO=" Date: $(shell date --iso=seconds)\n Branch $(shell git symbolic-ref --short HEAD) / commit $(shell git rev-parse --verify HEAD)\n by $(USER)@$(shell hostname -f)\n OS: $(shell uname -s -r -p)\n Compiler: $(shell $(CC) --version | head -1)"
+BUILD_INFO=" Date: $(shell date --iso=seconds)\n git branch/commit: $(shell if [ -e .git ] ; then git symbolic-ref --short HEAD ; else echo not built from git repository ; fi) / $(shell if [ -e .git ] ; then git rev-parse --verify HEAD ; else echo - ; fi )\n by $(USER)@$(shell hostname -f)\n OS: $(shell uname -s -r -p)\n Compiler: $(shell $(CC) --version | head -1)"
+
 
 CFLAGS:=$(CFLAGS) -D DESTDIR=\"$(DESTDIR)\" -D BUILD_INFO=\"$(BUILD_INFO)\" -D VERSION=\"$(VERSION)\" -I.
 
