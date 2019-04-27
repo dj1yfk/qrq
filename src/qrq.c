@@ -1532,7 +1532,7 @@ static int tonegen (int freq, int len, int waveform) {
 
 static int save_config () {
 	FILE *fh;
-	char tmp[80]="";
+	char tmp[8196]="";
 	char confopts[12][80] = {
 		"\ncallsign=", 
 		"\ncallbase=",
