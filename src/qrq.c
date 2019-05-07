@@ -1056,6 +1056,7 @@ static void close_summary_file () {
     s_pos += sprintf(summary + s_pos, "Score: %d, Max. speed (CpM): %d\r\nSaved at: %s\r\n", score, maxspeed, time_fmt);
 
 #if WIN32
+    snprintf(filename, PATH_MAX, "%s-%s.txt",  mycall, time_fmt);
 #else
     snprintf(filename, PATH_MAX, "%s/%s-%s.txt", sumfilepath, mycall, time_fmt);
 #endif
