@@ -131,7 +131,7 @@ static int full_bufpos = 0;
 AUDIO_HANDLE dsp_fd;
 
 static int display_toplist();
-static int calc_score (char * realcall, char * input, int speed, char * output);
+static int calc_score (char * realcall, char * input, int speed, char * output, int f6pressed);
 static int update_score();
 static int show_error (char * realcall, char * wrongcall); 
 static int clear_display();
@@ -168,6 +168,7 @@ pthread_attr_t cwattr;
 char rcfilename[PATH_MAX]="";			/* filename and path to qrqrc */
 char tlfilename[PATH_MAX]="";			/* filename and path to toplist */
 char cbfilename[PATH_MAX]="";			/* filename and path to callbase */
+char sumfilepath[PATH_MAX]="";			/* path where to save summary files for each attempt */
 
 char destdir[PATH_MAX]="";
 
@@ -513,9 +514,9 @@ while (status == 1) {
 		}
 		
 		tmp[0]='\0';
-		score += calc_score(calls[i], input, speed, tmp);
+		score += calc_score(calls[i], input, speed, tmp, f6pressed);
 		update_score();
-		if (strcmp(tmp, "*")) {			/* made an error */
+		if (strcmp(tmp, "-")) {			/* made an error */
 				show_error(calls[i], tmp);
 		}
 		input[0]='\0';
@@ -986,14 +987,14 @@ static int display_toplist () {
  *
  * in training modes (unlimited attempts, f6, fixed speed), no points.
  * */
-static int calc_score (char * realcall, char * input, int spd, char * output) {
+static int calc_score (char * realcall, char * input, int spd, char * output, int f6pressed) {
 	int i,x,m=0;
     int score = 0;
 
 	x = strlen(realcall);
 
 	if (strcmp(input, realcall) == 0) {		 /* exact match! */
-		output[0]='*';						/* * == OK, no mistake */
+		output[0]='-';						/* * == OK, no mistake */
 		output[1]='\0';	
 		if (speed > maxspeed) {maxspeed = speed;}
 		if (!fixspeed) speed += 10;
@@ -1022,8 +1023,7 @@ static int calc_score (char * realcall, char * input, int spd, char * output) {
 		}
 	}
 
-    /* write summary */
-    s_pos += sprintf(summary + s_pos, "%-16s %-16s %-16s %-4d %-5d\r\n", realcall, input, output, spd, score);
+    s_pos += sprintf(summary + s_pos, "%-16s %-16s %-16s %-4d %-5d %c\r\n", realcall, input, output, spd, score, f6pressed ? '*' : ' ');
 
     return score;
 }
@@ -1031,18 +1031,37 @@ static int calc_score (char * realcall, char * input, int spd, char * output) {
 static void start_summary_file () {
     s_pos = 0;
     s_pos += sprintf(summary + s_pos, "QRQ attempt by %s.\r\n\r\n", mycall);
-    s_pos += sprintf(summary + s_pos, "%-16s %-16s %-16s %-4s %-5s\r\n", "Sent call", "Input", "Difference", "CpM", "Score");
-    s_pos += sprintf(summary + s_pos, "-------------------------------------------------------------\r\n");
+    s_pos += sprintf(summary + s_pos, "%-16s %-16s %-16s %-4s %-5s %s\r\n", "Sent call", "Input", "Difference", "CpM", "Score", "F6");
+    s_pos += sprintf(summary + s_pos, "----------------------------------------------------------------\r\n");
 }
 
 static void close_summary_file () {
     FILE *fh;
+    time_t t;
+    struct tm *tmp;
+    char time_fmt[256];
+    char filename[PATH_MAX];
 
-    s_pos += sprintf(summary + s_pos, "-------------------------------------------------------------\r\n");
-    s_pos += sprintf(summary + s_pos, "Score: %d, Max. speed (CpM): %d\r\n", score, maxspeed);
+    t = time(NULL);
+    tmp = localtime(&t);
+    if (tmp == NULL) {
+        return;
+    }
 
-	if ((fh = fopen("/tmp/DJ1YFK-20190507_0735.txt", "w")) == NULL) {
-		printf("Unable to open summary file!\r\n");
+    if (strftime(time_fmt, sizeof(time_fmt), "%Y%m%d_%H%M", tmp) == 0) {
+        return;
+    }
+
+    s_pos += sprintf(summary + s_pos, "----------------------------------------------------------------\r\n");
+    s_pos += sprintf(summary + s_pos, "Score: %d, Max. speed (CpM): %d\r\nSaved at: %s\r\n", score, maxspeed, time_fmt);
+
+#if WIN32
+#else
+    snprintf(filename, PATH_MAX, "%s/%s-%s.txt", sumfilepath, mycall, time_fmt);
+#endif
+
+	if ((fh = fopen(filename, "w")) == NULL) {
+		printf("Unable to open summary file (%s)!\r\n", filename);
 		exit(EXIT_FAILURE);
 	}
 
@@ -1774,9 +1793,9 @@ static int find_files () {
 	
 	FILE *fh;
 	const char *homedir = NULL;
-	char tmp_rcfilename[1024] = "";
-	char tmp_tlfilename[1024] = "";
-	char tmp_cbfilename[1024] = "";
+	char tmp_rcfilename[PATH_MAX] = "";
+	char tmp_tlfilename[PATH_MAX] = "";
+	char tmp_cbfilename[PATH_MAX] = "";
 
 	printw("\nChecking for necessary files (qrqrc, toplist, callbase)...\n");
 	
@@ -1785,16 +1804,14 @@ static int find_files () {
 		((fh = fopen("callbase.qcb", "r")) == NULL)) {
 		
 		if ((homedir = getenv("HOME")) != NULL) {
-		printw("... not found in current directory. Checking "
-						"%s/.qrq/...\n", homedir);
-		refresh();
-		strcat(rcfilename, homedir);
+    		printw("... not found in current directory. Checking %s/.qrq/...\n", homedir);
+    		refresh();
+	    	strcat(rcfilename, homedir);
 		}
 		else {
-		printw("... not found in current directory. Checking "
-						"./.qrq/...\n", homedir);
-		refresh();
-		strcat(rcfilename, ".");
+		    printw("... not found in current directory. Checking ./.qrq/...\n");
+    		refresh();
+	    	strcat(rcfilename, ".");
 		}
 				
 		strcat(rcfilename, "/.qrq/qrqrc");
@@ -1876,14 +1893,18 @@ static int find_files () {
 				strcpy(tlfilename, homedir);
 				strcat(tlfilename, "/.qrq/toplist");
 				strcpy(cbfilename, tmp_cbfilename);
+                strcpy(sumfilepath, homedir);
+				strcat(sumfilepath, "/.qrq/");
 			} /* found in DESTDIR/share/qrq/ */
 		}
 		else {
 			printw("... found files in %s/.qrq/.\n", homedir);
-			strcat(tlfilename, homedir);
+			strcpy(tlfilename, homedir);
 			strcat(tlfilename, "/.qrq/toplist");
 			strcpy(cbfilename, destdir);
 			strcat(cbfilename, "/share/qrq/callbase.qcb");
+            strcpy(sumfilepath, homedir);
+            strcat(sumfilepath, "/.qrq/");
 		}
 	}
 	else {
@@ -1891,6 +1912,7 @@ static int find_files () {
 		strcpy(rcfilename, "qrqrc");
 		strcpy(tlfilename, "toplist");
 		strcpy(cbfilename, "callbase.qcb");
+        strcpy(sumfilepath, ".");
 	}
 	refresh();
 	fclose(fh);
