@@ -154,6 +154,8 @@ static void callbase_dialog();
 static void parameter_dialog();
 static int clear_parameter_display();
 static void update_parameter_dialog();
+static void start_summary_file();
+static void close_summary_file();
 
 #ifdef WIN_THREADS
 HANDLE cwthread;
@@ -169,6 +171,8 @@ char cbfilename[PATH_MAX]="";			/* filename and path to callbase */
 
 char destdir[PATH_MAX]="";
 
+char summary[65536]="";                 /* detailled attempt summary, saved in a file */
+int s_pos = 0;                          /* Position within summary */
 
 /* create windows */
 WINDOW *top_w;					/* actual score					*/
@@ -401,6 +405,7 @@ while (status == 1) {
 	nrofcalls = read_callbase();
 
 	/****** send 50 or unlimited calls, ask for input, score ******/
+    start_summary_file();
 	
 	for (callnr=1; callnr < (unlimitedattempt ? nrofcalls : 51); callnr++) {
 		/* Make sure to wait for the cwthread of the previous callsign, if
@@ -518,6 +523,8 @@ while (status == 1) {
 		previousfreq = freq;
 		calls[i] = NULL;
 	}
+
+    close_summary_file();
 
 	/* attempt is over, send AR */
 	callnr = 0;
@@ -981,6 +988,7 @@ static int display_toplist () {
  * */
 static int calc_score (char * realcall, char * input, int spd, char * output) {
 	int i,x,m=0;
+    int score = 0;
 
 	x = strlen(realcall);
 
@@ -990,10 +998,7 @@ static int calc_score (char * realcall, char * input, int spd, char * output) {
 		if (speed > maxspeed) {maxspeed = speed;}
 		if (!fixspeed) speed += 10;
 		if (attemptvalid) {
-			return 2*x*spd;						/* score */
-		}
-		else {
-			return 0;
+            score =  2*x*spd;						/* score */
 		}
 	}
 	else {									/* assemble error string */
@@ -1013,10 +1018,36 @@ static int calc_score (char * realcall, char * input, int spd, char * output) {
 
 		/* score when 1-3 mistakes was made */
 		if ((m < 4) && attemptvalid) {
-			return (int) (2*x*spd)/(5*m);
+			score = (int) (2*x*spd)/(5*m);
 		}
-		else {return 0;};
 	}
+
+    /* write summary */
+    s_pos += sprintf(summary + s_pos, "%-16s %-16s %-16s %-4d %-5d\r\n", realcall, input, output, spd, score);
+
+    return score;
+}
+
+static void start_summary_file () {
+    s_pos = 0;
+    s_pos += sprintf(summary + s_pos, "QRQ attempt by %s.\r\n\r\n", mycall);
+    s_pos += sprintf(summary + s_pos, "%-16s %-16s %-16s %-4s %-5s\r\n", "Sent call", "Input", "Difference", "CpM", "Score");
+    s_pos += sprintf(summary + s_pos, "-------------------------------------------------------------\r\n");
+}
+
+static void close_summary_file () {
+    FILE *fh;
+
+    s_pos += sprintf(summary + s_pos, "-------------------------------------------------------------\r\n");
+    s_pos += sprintf(summary + s_pos, "Score: %d, Max. speed (CpM): %d\r\n", score, maxspeed);
+
+	if ((fh = fopen("/tmp/DJ1YFK-20190507_0735.txt", "w")) == NULL) {
+		printf("Unable to open summary file!\r\n");
+		exit(EXIT_FAILURE);
+	}
+
+    fwrite(summary, 1, s_pos, fh);
+    fclose(fh);
 }
 
 /* print score, current speed and max speed to window */
@@ -1532,7 +1563,7 @@ static int tonegen (int freq, int len, int waveform) {
 
 static int save_config () {
 	FILE *fh;
-	char tmp[8196]="";
+	char tmp[4096]="";
 	char confopts[12][80] = {
 		"\ncallsign=", 
 		"\ncallbase=",
