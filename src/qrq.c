@@ -1023,7 +1023,7 @@ static int calc_score (char * realcall, char * input, int spd, char * output, in
 		}
 	}
 
-    s_pos += sprintf(summary + s_pos, "%-16s %-16s %-16s %-4d %-5d %c\r\n", realcall, input, output, spd, score, f6pressed ? '*' : ' ');
+    s_pos += sprintf(summary + s_pos, "%-16s %-16s %-16s %3d %3d %5d %c\r\n", realcall, input, output, spd, spd/5, score, f6pressed ? '*' : ' ');
 
     return score;
 }
@@ -1031,8 +1031,8 @@ static int calc_score (char * realcall, char * input, int spd, char * output, in
 static void start_summary_file () {
     s_pos = 0;
     s_pos += sprintf(summary + s_pos, "QRQ attempt by %s.\r\n\r\n", mycall);
-    s_pos += sprintf(summary + s_pos, "%-16s %-16s %-16s %-4s %-5s %s\r\n", "Sent call", "Input", "Difference", "CpM", "Score", "F6");
-    s_pos += sprintf(summary + s_pos, "----------------------------------------------------------------\r\n");
+    s_pos += sprintf(summary + s_pos, "%-16s %-16s %-16s %-3s %-3s %-5s %s\r\n", "Sent call", "Input", "Difference", "CpM", "WpM", "Score", "F6");
+    s_pos += sprintf(summary + s_pos, "--------------------------------------------------------------------\r\n");
 }
 
 static void close_summary_file () {
@@ -1052,8 +1052,8 @@ static void close_summary_file () {
         return;
     }
 
-    s_pos += sprintf(summary + s_pos, "----------------------------------------------------------------\r\n");
-    s_pos += sprintf(summary + s_pos, "Score: %d, Max. speed (CpM): %d\r\nSaved at: %s\r\n", score, maxspeed, time_fmt);
+    s_pos += sprintf(summary + s_pos, "--------------------------------------------------------------------\r\n");
+    s_pos += sprintf(summary + s_pos, "Score: %d, Max. speed (CpM/WpM): %d / %d\r\nSaved at: %s\r\n", score, maxspeed, maxspeed/5, time_fmt);
 
 #if WIN32
     snprintf(filename, PATH_MAX, "%s-%s.txt",  mycall, time_fmt);
