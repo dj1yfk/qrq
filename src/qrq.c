@@ -1055,11 +1055,7 @@ static void close_summary_file () {
     s_pos += sprintf(summary + s_pos, "--------------------------------------------------------------------\r\n");
     s_pos += sprintf(summary + s_pos, "Score: %d, Max. speed (CpM/WpM): %d / %d\r\nSaved at: %s\r\n", score, maxspeed, maxspeed/5, time_fmt);
 
-#if WIN32
-    snprintf(filename, PATH_MAX, "%s-%s.txt",  mycall, time_fmt);
-#else
     snprintf(filename, PATH_MAX, "%s/%s-%s.txt", sumfilepath, mycall, time_fmt);
-#endif
 
 	if ((fh = fopen(filename, "w")) == NULL) {
 		printf("Unable to open summary file (%s)!\r\n", filename);
@@ -1861,6 +1857,7 @@ static int find_files () {
 					endwin();
 					exit(EXIT_FAILURE);
 				}
+
 				/* OK, now we created the directory, we can read in
 				 * DESTDIR/local/, so I assume copying files won't cause any
 				 * problem, with system()... */
@@ -1895,7 +1892,7 @@ static int find_files () {
 				strcat(tlfilename, "/.qrq/toplist");
 				strcpy(cbfilename, tmp_cbfilename);
                 strcpy(sumfilepath, homedir);
-				strcat(sumfilepath, "/.qrq/");
+                strcat(sumfilepath, "/.qrq/Summary");
 			} /* found in DESTDIR/share/qrq/ */
 		}
 		else {
@@ -1905,7 +1902,7 @@ static int find_files () {
 			strcpy(cbfilename, destdir);
 			strcat(cbfilename, "/share/qrq/callbase.qcb");
             strcpy(sumfilepath, homedir);
-            strcat(sumfilepath, "/.qrq/");
+            strcat(sumfilepath, "/.qrq/Summary");
 		}
 	}
 	else {
@@ -1913,8 +1910,9 @@ static int find_files () {
 		strcpy(rcfilename, "qrqrc");
 		strcpy(tlfilename, "toplist");
 		strcpy(cbfilename, "callbase.qcb");
-        strcpy(sumfilepath, ".");
+        strcpy(sumfilepath, "Summary");
 	}
+    mkdir(sumfilepath, 0777);
 	refresh();
 	fclose(fh);
 	return 0;
