@@ -1912,7 +1912,11 @@ static int find_files () {
 		strcpy(cbfilename, "callbase.qcb");
         strcpy(sumfilepath, "Summary");
 	}
+#ifdef WIN32
+    mkdir(sumfilepath);
+#else
     mkdir(sumfilepath, 0777);
+#endif
 	refresh();
 	fclose(fh);
 	return 0;
