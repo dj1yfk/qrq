@@ -217,7 +217,7 @@ int main (int argc, char *argv[]) {
 	keypad(stdscr, TRUE);
 	scrollok(stdscr, FALSE);
 	
-	printw("qrq v%s - Copyright (C) 2006-2013 Fabian Kurz, DJ1YFK\n", VERSION);
+	printw("qrq v%s - Copyright (C) 2006-2019 Fabian Kurz, DJ1YFK\n", VERSION);
 	printw("This is free software, and you are welcome to redistribute it\n");
 	printw("under certain conditions (see COPYING).\n");
 
@@ -1064,6 +1064,15 @@ static void close_summary_file () {
 
     fwrite(summary, 1, s_pos, fh);
     fclose(fh);
+	
+    for (int i = 12; i <= 15; i++) {
+        mvwprintw(mid_w,i,2, "                                                         ");
+    }
+
+	mvwprintw(mid_w,13,1, " Written detailled summary of this attempt to:");
+	mvwprintw(mid_w,14,2, filename);
+    wrefresh(mid_w);
+
 }
 
 /* print score, current speed and max speed to window */
@@ -2175,7 +2184,7 @@ void select_callbase () {
 
 
 void help () {
-		printf("qrq v%s  (c) 2006-2013 Fabian Kurz, DJ1YFK. "
+		printf("qrq v%s  (c) 2006-2019 Fabian Kurz, DJ1YFK. "
 					"http://fkurz.net/ham/qrq.html\n", VERSION);
 		printf("High speed morse telegraphy trainer, similar to"
 					" RUFZ.\n\n");
