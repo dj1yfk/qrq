@@ -1,6 +1,6 @@
 # qrq Makefile -- Fabian Kurz, DJ1YFK -- http://fkurz.net/ham/qrq.html
 
-VERSION?=0.3.2
+VERSION?=0.3.3
 DESTDIR?=/usr
 
 # set to YES if you want to use Core Audio
@@ -33,7 +33,8 @@ endif
 
 # build information may be added by CI scripts and will be
 # displayed in the help text (qrq -h)
-BUILD_INFO=" Date: $(shell date --iso=seconds)\n Branch $(shell git symbolic-ref --short HEAD) / commit $(shell git rev-parse --verify HEAD)\n by $(USER)@$(shell hostname -f)\n OS: $(shell uname -s -r -p)\n Compiler: $(shell $(CC) --version | head -1)"
+
+BUILD_INFO=" Date: $(shell date --iso=seconds)\n git branch/commit: $(shell if [ x${CI_COMMIT_REF_NAME} != x ]; then echo ${CI_COMMIT_REF_NAME} ; elif [ -e .git ] || [ -e ../.git ]; then git symbolic-ref --short HEAD ; else echo not built from git repository ; fi) / $(shell if [ x${CI_COMMIT_SHA} != x ]; then echo ${CI_COMMIT_SHA}; elif [ -e .git ] || [ -e ../.git ] ; then git rev-parse --verify HEAD ; else echo - ; fi )\n by $(USER)@$(shell hostname -f)\n OS: $(shell uname -s -r -p)\n Compiler: $(shell $(CC) --version | head -1)"
 
 CFLAGS:=$(CFLAGS) -D DESTDIR=\"$(DESTDIR)\" -D BUILD_INFO=\"$(BUILD_INFO)\" -D VERSION=\"$(VERSION)\" -I.
 
@@ -149,6 +150,7 @@ package: qrq
 
 clean:
 	rm -f qrq.exe qrq toplist-old *~ *.o README
+	rm -rf Summary
 	rm -rf qrq.app
 
 dist:

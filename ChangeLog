@@ -1,5 +1,10 @@
+0.3.3 / 2019-05-09   Fabian Kurz <fabian@fkurz.net>
+	* Generate summary files for each attempt (idea by K0MP)
+	* Update callsign database and toplist
+	* Minor bug fixes and cleanup
+
 0.3.2 / 2019-03-09   Fabian Kurz <fabian@fkurz.net>
-    * Fixed occasional crashes on Windows (tnx Michael Fluegemann KE8AQW)
+	* Fixed occasional crashes on Windows (tnx Michael Fluegemann KE8AQW)
 	* Allow spaces in words/"callsigns" (requested by several users)
 	* Fix segfault on very slow CW speeds (closes debian bug#825862, tnx DJ3EI)
 	* Call gnuplot with -p (persist) so the window stays open

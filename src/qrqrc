@@ -39,3 +39,4 @@ unlimitedattempt=0
 
 # Callbase - specify a different file here, if desired.
 # callbase=/tmp/test
+# callbase=callbase.qcb 

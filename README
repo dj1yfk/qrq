@@ -1,4 +1,4 @@
-QRQ - yet another CW trainer - Version 0.3.2
+QRQ - yet another CW trainer - Version 0.3.3
 
 Project website: http://fkurz.net/ham/qrq.html
 -----------------------------------------------------------------------------
@@ -36,13 +36,19 @@ can be set by the user.
 
 There is a simple toplist function in qrq which makes it possible for the user
 to keep track of his training success or to compare scores with others.
+
 You can submit your highscores via e-Mail to fabian@fkurz.net and they will
-appear on the toplist published at http://fkurz.net/ham/qrqtop.html.
+appear on the toplist published at https://fkurz.net/ham/qrqtop.html.
 The toplist is not protected by any kind of checksum, it's based on honesty.
 
-As of version 0.0.7, the toplist file also includes a timestamp of the attempt,
-which makes it possible to keep track of your training progress. Pressing F7
-generates a graph score vs. date (GNUplot required, not on Windows).
+Additionally to the toplist, a detail summary file for each attempt is saved
+in the "Summary" sub directory (on Windows: in the qrq directory; on Linux:
+in ~/.qrq/), containing all sent and received callsigns, speeds and points.
+
+The toplist file also includes a timestamp of the attempt, which makes it
+possible to keep track of your training progress. Pressing F7 generates a
+graph with score vs. date (GNUplot required, not on Windows). You may also
+import the file into your favorite spreadsheet program to generate stats.
 
 Options can be changed in the config file qrqrc or via the options menu (F5).
 As of version 0.2.0, some additional training modes are available, which allow
