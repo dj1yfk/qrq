@@ -1,3 +1,6 @@
+0.3.4 / 2019-00-00   Fabian Kurz <fabian@fkurz.net>
+	* Updated Makefile for OS X (tnx David Winarsky)
+
 0.3.3 / 2019-05-09   Fabian Kurz <fabian@fkurz.net>
 	* Generate summary files for each attempt (idea by K0MP)
 	* Update callsign database and toplist

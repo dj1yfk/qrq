@@ -42,8 +42,8 @@ ifeq ($(USE_CA), YES)
 		OBJECTS=qrq.o coreaudio.o
 		CFLAGS:=$(CFLAGS) -D CA -std=c99 -pthread
 		ifeq ($(OSX_PLATFORM), YES)
-			LDFLAGS:=$(LDFLAGS) -framework AudioUnit -framework CoreServices  -isysroot /Developer/SDKs/MacOSX10.6.sdk -mmacosx-version-min=10.5
-			CFLAGS:=$(CFLAGS) -isysroot /Developer/SDKs/MacOSX10.6.sdk -mmacosx-version-min=10.5
+			LDFLAGS:=$(LDFLAGS) -v -lncurses -framework AudioUnit -framework CoreServices  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk -mmacosx-version-min=10.14
+			CFLAGS:=$(CFLAGS) -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk -mmacosx-version-min=10.14
 			ifeq ($(OSX_BUNDLE), YES)
 				CFLAGS:=$(CFLAGS) -D OSX_BUNDLE
 			endif
