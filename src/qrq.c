@@ -847,9 +847,15 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 		if (c == '\n' && sending_complete)
 			break;
 
-		if (((c > 64 && c < 91) || (c > 96 && c < 123) || (c > 47 && c < 58)
-					 || c == '/' || c == ' ') && strlen(line) < 14) {
-	
+		if (((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0'  && c <= '9')
+					 || c == '/' || c == ' ' || c == '-') && strlen(line) < 14) {
+
+            // accept - as / for German keyboards (and other layouts where /
+            // requires pressing shift)
+            if (c == '-') {
+                c = '/';
+            }
+
 			line[strlen(line)+1]='\0';
 			if (capitals) {
 				c = toupper(c);
