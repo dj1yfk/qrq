@@ -31,6 +31,8 @@ else
 	CC=gcc
 endif
 
+INSTALL ?= install
+
 # build information may be added by CI scripts and will be
 # displayed in the help text (qrq -h)
 
@@ -75,7 +77,7 @@ qrq: $(OBJECTS)
 	$(CC) -Wall -o $@ $^ -lm $(LDFLAGS)
 	
 .c.o:
-	$(CC) -Wall $(CFLAGS) -c $<
+	$(CC) -Wall $(CPPFLAGS) $(CFLAGS) -c $<
 
 #.cpp.o:
 #	g++ $(CFLAGS) -c $<
@@ -83,20 +85,20 @@ qrq: $(OBJECTS)
 ifeq ($(OSX_BUNDLE), YES)
 
 install: qrq
-	install -d -v							qrq.app/Contents
-	install -d -v							qrq.app/Contents/MacOS
-	install -d -v							qrq.app/Contents/Resources
-	install -d -v							qrq.app/Contents/Resources/share/qrq/
-	install -d -v							qrq.app/Contents/Resources/share/man/man1/
-	install    -m 0755 qrq					qrq.app/Contents/MacOS/
-	install    -m 0755 qrqscore				qrq.app/Contents/MacOS/
-	install    -m 0644 qrq.1				qrq.app/Contents/Resources/share/man/man1/
-	install    -m 0644 callbase.qcb				qrq.app/Contents/Resources/share/qrq/
-	install    -m 0644 english.qcb				qrq.app/Contents/Resources/share/qrq/
-	install    -m 0644 qrqrc				qrq.app/Contents/Resources/share/qrq/
-	install    -m 0644 toplist				qrq.app/Contents/Resources/share/qrq/
-	install    -m 0644 OSXExtras/qrq.icns	qrq.app/Contents/Resources/
-	install    -m 0755 OSXExtras/qrqsh		qrq.app/Contents/MacOS/
+	${INSTALL} -d -v							qrq.app/Contents
+	${INSTALL} -d -v							qrq.app/Contents/MacOS
+	${INSTALL} -d -v							qrq.app/Contents/Resources
+	${INSTALL} -d -v							qrq.app/Contents/Resources/share/qrq/
+	${INSTALL} -d -v							qrq.app/Contents/Resources/share/man/man1/
+	${INSTALL}    -m 0755 qrq					qrq.app/Contents/MacOS/
+	${INSTALL}    -m 0755 qrqscore				qrq.app/Contents/MacOS/
+	${INSTALL}    -m 0644 qrq.1				qrq.app/Contents/Resources/share/man/man1/
+	${INSTALL}    -m 0644 callbase.qcb				qrq.app/Contents/Resources/share/qrq/
+	${INSTALL}    -m 0644 english.qcb				qrq.app/Contents/Resources/share/qrq/
+	${INSTALL}    -m 0644 qrqrc				qrq.app/Contents/Resources/share/qrq/
+	${INSTALL}    -m 0644 toplist				qrq.app/Contents/Resources/share/qrq/
+	${INSTALL}    -m 0644 OSXExtras/qrq.icns	qrq.app/Contents/Resources/
+	${INSTALL}    -m 0755 OSXExtras/qrqsh		qrq.app/Contents/MacOS/
 	sed 's/VERSION/$(VERSION)/' OSXExtras/Info.plist > qrq.app/Contents/Info.plist
 
 uninstall:
@@ -105,16 +107,16 @@ uninstall:
 else
 
 install: qrq
-	install -d -v                      $(DESTDIR)/share/qrq/
-	install -d -v                      $(DESTDIR)/share/man/man1/
-	install -d -v                      $(DESTDIR)/bin/
-	install -s -m 0755 qrq             $(DESTDIR)/bin/
-	install    -m 0755 qrqscore        $(DESTDIR)/bin/
-	install    -m 0644 qrq.1           $(DESTDIR)/share/man/man1/
-	install    -m 0644 callbase.qcb    $(DESTDIR)/share/qrq/
-	install    -m 0644 english.qcb     $(DESTDIR)/share/qrq/
-	install    -m 0644 qrqrc           $(DESTDIR)/share/qrq/
-	install    -m 0644 toplist         $(DESTDIR)/share/qrq/
+	${INSTALL} -d -v                      $(DESTDIR)/share/qrq/
+	${INSTALL} -d -v                      $(DESTDIR)/share/man/man1/
+	${INSTALL} -d -v                      $(DESTDIR)/bin/
+	${INSTALL} -s -m 0755 qrq             $(DESTDIR)/bin/
+	${INSTALL}    -m 0755 qrqscore        $(DESTDIR)/bin/
+	${INSTALL}    -m 0644 qrq.1           $(DESTDIR)/share/man/man1/
+	${INSTALL}    -m 0644 callbase.qcb    $(DESTDIR)/share/qrq/
+	${INSTALL}    -m 0644 english.qcb     $(DESTDIR)/share/qrq/
+	${INSTALL}    -m 0644 qrqrc           $(DESTDIR)/share/qrq/
+	${INSTALL}    -m 0644 toplist         $(DESTDIR)/share/qrq/
 
 	
 uninstall:
@@ -132,24 +134,24 @@ endif
 package: qrq
 	export CODESIGN_ALLOCATE=/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/codesign_allocate; ldid -s qrq
 	rm -rf qrq-pkg
-	install -d -v                      qrq-pkg/$(DESTDIR)/share/qrq/
-	install -d -v                      qrq-pkg/$(DESTDIR)/share/man/man1/
-	install -d -v                      qrq-pkg/$(DESTDIR)/bin/
-	install -d -v                      qrq-pkg/DEBIAN/
-	install -s -m 0755 qrq             qrq-pkg/$(DESTDIR)/bin/
-	install    -m 0755 qrqscore        qrq-pkg/$(DESTDIR)/bin/
-	install    -m 0644 qrq.1           qrq-pkg/$(DESTDIR)/share/man/man1/
-	install    -m 0644 callbase.qcb    qrq-pkg/$(DESTDIR)/share/qrq/
-	install    -m 0644 english.qcb     qrq-pkg/$(DESTDIR)/share/qrq/
-	install    -m 0644 qrqrc           qrq-pkg/$(DESTDIR)/share/qrq/
-	install    -m 0644 toplist         qrq-pkg/$(DESTDIR)/share/qrq/
-	install    -m 0644 control         qrq-pkg/DEBIAN/
+	${INSTALL} -d -v                      qrq-pkg/$(DESTDIR)/share/qrq/
+	${INSTALL} -d -v                      qrq-pkg/$(DESTDIR)/share/man/man1/
+	${INSTALL} -d -v                      qrq-pkg/$(DESTDIR)/bin/
+	${INSTALL} -d -v                      qrq-pkg/DEBIAN/
+	${INSTALL} -s -m 0755 qrq             qrq-pkg/$(DESTDIR)/bin/
+	${INSTALL}    -m 0755 qrqscore        qrq-pkg/$(DESTDIR)/bin/
+	${INSTALL}    -m 0644 qrq.1           qrq-pkg/$(DESTDIR)/share/man/man1/
+	${INSTALL}    -m 0644 callbase.qcb    qrq-pkg/$(DESTDIR)/share/qrq/
+	${INSTALL}    -m 0644 english.qcb     qrq-pkg/$(DESTDIR)/share/qrq/
+	${INSTALL}    -m 0644 qrqrc           qrq-pkg/$(DESTDIR)/share/qrq/
+	${INSTALL}    -m 0644 toplist         qrq-pkg/$(DESTDIR)/share/qrq/
+	${INSTALL}    -m 0644 control         qrq-pkg/DEBIAN/
 	export COPYFILE_DISABLE=1; export COPY_EXTENDED_ATTRIBUTES_DISABLE=1; dpkg-deb -b qrq-pkg cydiastore_com.kb1ooo.qrq_v$(shell grep ^Version: control | cut -d ' ' -f 2).deb
 	$(SCP) cydiastore_com.kb1ooo.qrq_v$(shell grep ^Version: control | cut -d ' ' -f 2).deb $(IPHONE_HOST):/tmp
 	$(SSH) $(IPHONE_HOST) "dpkg -i /tmp/cydiastore_com.kb1ooo.qrq_v$(shell grep ^Version: control | cut -d ' ' -f 2).deb"
 
 clean:
-	rm -f qrq.exe qrq toplist-old *~ *.o README
+	rm -f qrq.exe qrq toplist-old *~ *.o
 	rm -rf Summary
 	rm -rf qrq.app
 
