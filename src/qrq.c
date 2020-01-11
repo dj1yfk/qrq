@@ -172,7 +172,7 @@ char sumfilepath[PATH_MAX]="";			/* path where to save summary files for each at
 
 char destdir[PATH_MAX]="";
 
-char summary[65536]="";                 /* detailled attempt summary, saved in a file */
+char summary[65536]="";                 /* detailed attempt summary, saved in a file */
 int s_pos = 0;                          /* Position within summary */
 
 /* create windows */
@@ -1075,7 +1075,7 @@ static void close_summary_file () {
         mvwprintw(mid_w,i,2, "                                                         ");
     }
 
-	mvwprintw(mid_w,13,1, " Written detailled summary of this attempt to:");
+	mvwprintw(mid_w,13,1, " Written detailed summary of this attempt to:");
 	mvwprintw(mid_w,14,2, filename);
     wrefresh(mid_w);
 
