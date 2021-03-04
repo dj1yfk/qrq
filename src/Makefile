@@ -41,11 +41,12 @@ BUILD_INFO=" Date: $(shell date +%Y-%m-%dT%H:%M:%S%z)\n git branch/commit: $(she
 CFLAGS:=$(CFLAGS) -D DESTDIR=\"$(DESTDIR)\" -D BUILD_INFO=\"$(BUILD_INFO)\" -D VERSION=\"$(VERSION)\" -I.
 
 ifeq ($(USE_CA), YES)
+		CC=clang
 		OBJECTS=qrq.o coreaudio.o
 		CFLAGS:=$(CFLAGS) -D CA -std=c99 -pthread
 		ifeq ($(OSX_PLATFORM), YES)
-			LDFLAGS:=$(LDFLAGS) -framework AudioUnit -framework CoreServices -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk 
-			CFLAGS:=$(CFLAGS) -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+			LDFLAGS:=$(LDFLAGS) -framework AudioUnit -framework CoreServices  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk -mmacosx-version-min=10.5 -lcurses
+			CFLAGS:=$(CFLAGS) -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk -mmacosx-version-min=10.5
 			ifeq ($(OSX_BUNDLE), YES)
 				CFLAGS:=$(CFLAGS) -D OSX_BUNDLE
 			endif
