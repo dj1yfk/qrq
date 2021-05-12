@@ -194,7 +194,9 @@ int main (int argc, char *argv[]) {
   char* p_slash = strrchr(argv[0], '/');
   strncpy(tempdir, argv[0], p_slash - argv[0]);
   p_slash = strrchr(tempdir, '/');
-  strncpy(destdir, tempdir, p_slash - tempdir);
+  if(p_slash != NULL) {
+    strncpy(destdir, tempdir, p_slash - tempdir);
+  }
   strcat(destdir, "/Resources");
 #else
   strcpy(destdir, DESTDIR);
