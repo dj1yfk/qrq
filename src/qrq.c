@@ -116,6 +116,8 @@ static int fixspeed=0;					/* keep speed fixed, regardless of err*/
 static int unlimitedattempt=0;			/* attempt with all calls  of the DB */
 static int attemptvalid=1;				/* 1 = not using any "cheats" */
 static unsigned long int nrofcalls=0;	
+static int toplist_own=0;               /* show only own call on toplist */
+
 
 long samplerate=44100;
 static long long_i;
@@ -325,6 +327,7 @@ while (status == 1) {
 	mvwaddstr(mid_w,7,2, "fraction of the points, depending on the number of");
 	mvwaddstr(mid_w,8,2, "errors is credited.");
 	mvwaddstr(mid_w,10,2, "F6 repeats a callsign once, F10 quits.");
+	mvwaddstr(mid_w,11,2, "F8 toggles showing only your results in the toplist.");
 	mvwaddstr(mid_w,12,2, "Settings can be changed with F5 (or in qrqrc).");
 #ifndef WIN32
 	mvwaddstr(mid_w,14,2, "Score statistics (requires gnuplot) with F7.");
@@ -376,6 +379,11 @@ while (status == 1) {
 #ifndef WIN32
 		statistics();
 #endif
+		break;
+	}
+	else if (i == 8) {
+		toplist_own = toplist_own == 1 ? 0 : 1;
+		display_toplist();
 		break;
 	}
 
@@ -923,6 +931,9 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 		else if (c == KEY_F(7)) {
 			return 7;
 		}
+		else if (c == KEY_F(8)) {
+			return 8;
+		}
 		else if (c == KEY_F(10)) {				/* quit */
 			if (callnr) {						/* quit attempt only */
 				return 10;
@@ -962,7 +973,8 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 /* Read toplist and diplay first 10 entries */
 static int display_toplist () {
 	FILE * fh;
-	int i=0;
+	int i = 0;
+	int first = 1;
 	char tmp[35]="";
 	if ((fh = fopen(tlfilename, "a+")) == NULL) {
 		endwin();
@@ -971,16 +983,35 @@ static int display_toplist () {
 	}
 	rewind(fh);				/* a+ -> end of file, we want the beginning */
 	(void) fgets(tmp, 34, fh);		/* first line not used */
-	while ((feof(fh) == 0) && i < 20) {
-		i++;
+	while ((feof(fh) == 0) && i < 21) {
 		if (fgets(tmp, 34, fh) != NULL) {
 			tmp[17]='\0';
-			if (strstr(tmp, mycall)) {		/* highlight own call */
-				wattron(right_w, A_BOLD);
+			if (toplist_own) {
+				if (strstr(tmp, mycall)) {   /* only show own call */
+					mvwaddstr(right_w,i+2, 2, tmp);
+					i++;
+				}
 			}
-			mvwaddstr(right_w,i+2, 2, tmp);
-			wattroff(right_w, A_BOLD);
+			else {
+				if (strstr(tmp, mycall)) {		/* highlight own call */
+					wattron(right_w, A_BOLD);
+				}
+				mvwaddstr(right_w,i+2, 2, tmp);
+				i++;
+				wattroff(right_w, A_BOLD);
+			}
 		}
+	}
+	// delete remaining lines
+	while (i < 21) {
+		if (first) {
+			mvwaddstr(right_w,i+2, 2, "  *** end ***   ");
+			first = 0;
+		}
+		else {
+			mvwaddstr(right_w,i+2, 2, "                ");
+		}
+		i++;
 	}
 	fclose(fh);
 	wrefresh(right_w);
