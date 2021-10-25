@@ -263,7 +263,7 @@ int main (int argc, char *argv[]) {
 	printw("\nReading callsign database... ");
 	nrofcalls = read_callbase();
 
-	printw("done. %d calls read.\n\n", nrofcalls);
+	printw("done. %ld calls read.\n\n", nrofcalls);
 	printw("Press any key to continue...");
 
 	refresh();
@@ -773,7 +773,7 @@ void update_parameter_dialog () {
 					"                  u", (unlimitedattempt ? "yes" : "no"));
 	if (!callnr) {
 		mvwprintw(conf_w,11,2, "Callsign database:     %-15s"
-					"      d (%d)", basename(cbfilename),nrofcalls);
+					"      d (%ld)", basename(cbfilename),nrofcalls);
 	}
 #ifdef OSS
 	mvwprintw(conf_w,12,2, "DSP device:            %-15s"
@@ -1109,7 +1109,7 @@ static void close_summary_file () {
     }
 
 	mvwprintw(mid_w,13,1, " Written detailed summary of this attempt to:");
-	mvwprintw(mid_w,14,2, filename);
+	mvwprintw(mid_w,14,2, "%s", filename);
     wrefresh(mid_w);
 
 }
@@ -1122,7 +1122,7 @@ static int update_score() {
 		mvwprintw(top_w, 1, 27, "%6d", score);	
 	}
 	else {
-		mvwprintw(top_w, 1, 27, "[training mode]", score);	
+		mvwprintw(top_w, 1, 27, "[training mode]");	
 	}
 	mvwprintw(top_w, 2, 27, "%3d", speed);	
 	mvwprintw(top_w, 2, 35, "%3d", speed/5);	
@@ -1431,7 +1431,7 @@ static int read_config () {
 			}
 			tmp[i]='\0';
 			samplerate = atoi(tmp);
-			printw("  line  %2d: sample rate: %d\n", line, samplerate);
+			printw("  line  %2d: sample rate: %ld\n", line, samplerate);
 		}
 	}
 
@@ -1933,7 +1933,7 @@ static int find_files () {
 					exit(EXIT_FAILURE);
 				}
 				printw("Files copied. You might want to edit "
-						"qrqrc according to your needs.\n", homedir);
+						"qrqrc according to your needs.\n");
 				strcpy(rcfilename, homedir);
 				strcat(rcfilename, "/.qrq/qrqrc");
 				strcpy(tlfilename, homedir);
