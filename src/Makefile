@@ -1,4 +1,4 @@
-# qrq Makefile -- Fabian Kurz, DJ1YFK -- http://fkurz.net/ham/qrq.html
+# qrq Makefile -- Fabian Kurz, DJ5CW -- https://fkurz.net/ham/qrq.html
 
 VERSION?=0.3.4
 DESTDIR?=/usr

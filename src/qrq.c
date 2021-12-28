@@ -1,7 +1,7 @@
 /* 
 qrq - High speed morse trainer, similar to the DOS classic "Rufz"
 
-Copyright (C) 2006-2019  Fabian Kurz and contributors
+Copyright (C) 2006-2021  Fabian Kurz and contributors
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -56,6 +56,11 @@ typedef int AUDIO_HANDLE;
 #define SAWTOOTH 2
 #define SQUARE 3
 
+#define CAPITALS_ON   1
+#define CAPITALS_OFF  0
+
+#define CALL_MAX    28    /* maximum allowed length of a call/word. limit to 28 so we can fit word + correction into the window */
+
 #ifndef DESTDIR
 #	define DESTDIR "/usr"
 #endif
@@ -94,7 +99,7 @@ const static char *codetable[] = {
 
 static char cblist[100][PATH_MAX];
 
-static char mycall[15]="DJ1YFK";		/* mycall. will be read from qrqrc */
+static char mycall[15]="DJ5CW";			/* mycall. will be read from qrqrc */
 static char dspdevice[PATH_MAX]="/dev/dsp";	/* will also be read from qrqrc */
 static int score = 0;					/* qrq score */
 static int sending_complete;			/* global lock for "enter" while sending */
@@ -117,7 +122,7 @@ static int unlimitedattempt=0;			/* attempt with all calls  of the DB */
 static int attemptvalid=1;				/* 1 = not using any "cheats" */
 static unsigned long int nrofcalls=0;	
 static int toplist_own=0;               /* show only own call on toplist */
-
+static int call_maxlen = 0;				/* maximum length of a callsign/word from current database */
 
 long samplerate=44100;
 static long long_i;
@@ -143,7 +148,7 @@ static int save_config();
 static int tonegen(int freq, int length, int waveform);
 static void *morse(void * arg); 
 static int add_to_buf(void* data, int size);
-static int readline(WINDOW *win, int y, int x, char *line, int i); 
+static int readline(WINDOW *win, int y, int x, char *line, int capitals, int len); 
 static void thread_fail (int j);
 static int check_toplist ();
 static int find_files ();
@@ -175,6 +180,8 @@ char sumfilepath[PATH_MAX]="";			/* path where to save summary files for each at
 char destdir[PATH_MAX]="";
 
 char summary[65536]="";                 /* detailed attempt summary, saved in a file */
+char summary_scr_fmt[255]="";           /* format string for a single summary score line */
+char summary_hdr_fmt[255]="";           /* format string for the summary header line */
 int s_pos = 0;                          /* Position within summary */
 
 /* create windows */
@@ -203,10 +210,10 @@ int main (int argc, char *argv[]) {
 #endif
 
 	char abort = 0;
-	char tmp[80]="";
-	char input[15]="";
+	char tmp[CALL_MAX]="";
+	char input[CALL_MAX]="";
 	int i=0,j=0,k=0;						/* counter etc. */
-	char previouscall[80]="";
+	char previouscall[CALL_MAX]="";
 	int previousfreq = 0;
 	int f6pressed=0;
 
@@ -221,7 +228,7 @@ int main (int argc, char *argv[]) {
 	keypad(stdscr, TRUE);
 	scrollok(stdscr, FALSE);
 	
-	printw("qrq v%s - Copyright (C) 2006-2019 Fabian Kurz, DJ1YFK\n", VERSION);
+	printw("qrq v%s - Copyright (C) 2006-2021 Fabian Kurz, DJ5CW\n", VERSION);
 	printw("This is free software, and you are welcome to redistribute it\n");
 	printw("under certain conditions (see COPYING).\n");
 
@@ -312,8 +319,8 @@ while (status == 1) {
 	mvwaddstr(top_w,1,1, "QRQ v");
 	mvwaddstr(top_w,1,6, VERSION);
 	wattroff(top_w, A_BOLD);
-	mvwaddstr(top_w,1,11, " by Fabian Kurz, DJ1YFK");
-	mvwaddstr(top_w,2,1, "Homepage and Toplist: http://fkurz.net/ham/qrq.html"
+	mvwaddstr(top_w,1,11, " by Fabian Kurz, DJ5CW");
+	mvwaddstr(top_w,2,1, "Homepage and Toplist: https://fkurz.net/ham/qrq.html"
 					"     ");
 
 	clear_display();
@@ -356,7 +363,7 @@ while (status == 1) {
 	speed = initialspeed;
 	
 	/* prompt for own callsign */
-	i = readline(bot_w, 1, 30, mycall, 1);
+	i = readline(bot_w, 1, 30, mycall, CAPITALS_ON, 8);
 
 	/* F5 -> Configure sound */
 	if (i == 5) {
@@ -466,7 +473,7 @@ while (status == 1) {
 		
 		f6pressed=0;
 
-		while (!abort && (j = readline(bot_w, 1, 8, input,1)) > 4) {/* F5..F10 pressed */
+		while (!abort && (j = readline(bot_w, 1, 8, input, CAPITALS_ON, CALL_MAX)) > 4) {/* F5..F10 pressed */
 
 			switch (j) {
 				case 6:		/* repeat call */
@@ -530,7 +537,7 @@ while (status == 1) {
 				show_error(calls[i], tmp);
 		}
 		input[0]='\0';
-		strncpy(previouscall, calls[i], 80);
+		strncpy(previouscall, calls[i], CALL_MAX);
 		previousfreq = freq;
 		calls[i] = NULL;
 	}
@@ -654,7 +661,7 @@ while ((j = getch()) != 0) {
 			}
 			break;
 		case 'c':
-			readline(conf_w, 5, 25, mycall, 1);
+			readline(conf_w, 5, 25, mycall, CAPITALS_ON, 8);
 			if (strlen(mycall) == 0) {
 				strcpy(mycall, "NOCALL");
 			}
@@ -665,7 +672,7 @@ while ((j = getch()) != 0) {
 			break;
 #ifdef OSS
 		case 'e':
-			readline(conf_w, 12, 25, dspdevice, 0);
+			readline(conf_w, 12, 25, dspdevice, CAPITALS_OFF, 14);
 			if (strlen(dspdevice) == 0) {
 				strcpy(dspdevice, "/dev/dsp");
 			}
@@ -834,7 +841,7 @@ void callbase_dialog () {
 
 /* reads a callsign etc. in *win at y/x and writes it to *line */
 
-static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
+static int readline(WINDOW *win, int y, int x, char *line, int capitals, int len) {
 	int c;						/* character we read */
 	int i=0;
 
@@ -858,7 +865,7 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 			break;
 
 		if (((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0'  && c <= '9')
-					 || c == '/' || c == ' ' || c == '-') && strlen(line) < 14) {
+					 || c == '/' || c == ' ' || c == '-') && strlen(line) <= len) {
 
             // accept - as / for German keyboards (and other layouts where /
             // requires pressing shift)
@@ -962,8 +969,10 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals) {
 #endif
 			exit(0);
 		}
-		
-		mvwaddstr(win,y,x,"                ");
+
+		for (int p = 0; p <= len; p++) {	
+			mvwaddstr(win,y,x+p," ");
+		}
 		mvwaddstr(win,y,x,line);
 		wmove(win,y,x+p);
 		wrefresh(win);
@@ -1062,16 +1071,23 @@ static int calc_score (char * realcall, char * input, int spd, char * output, in
 		}
 	}
 
-    s_pos += sprintf(summary + s_pos, "%-16s %-16s %-16s %3d %3d %5d %c\r\n", realcall, input, output, spd, spd/5, score, f6pressed ? '*' : ' ');
+    s_pos += sprintf(summary + s_pos, summary_scr_fmt, realcall, input, output, spd, spd/5, score, f6pressed ? '*' : ' ');
 
     return score;
 }
 
 static void start_summary_file () {
+
+	sprintf(summary_scr_fmt, "%%-%ds %%-%ds %%-%ds %%3d %%3d %%5d %%c\r\n", call_maxlen + 2, call_maxlen + 2, call_maxlen + 2);
+	sprintf(summary_hdr_fmt, "%%-%ds %%-%ds %%-%ds %%-3s %%-3s %%-5s %%s\r\n", call_maxlen + 2, call_maxlen + 2, call_maxlen + 2);
+
     s_pos = 0;
     s_pos += sprintf(summary + s_pos, "QRQ attempt by %s.\r\n\r\n", mycall);
-    s_pos += sprintf(summary + s_pos, "%-16s %-16s %-16s %-3s %-3s %-5s %s\r\n", "Sent call", "Input", "Difference", "CpM", "WpM", "Score", "F6");
-    s_pos += sprintf(summary + s_pos, "--------------------------------------------------------------------\r\n");
+    s_pos += sprintf(summary + s_pos, summary_hdr_fmt, "Sent call", "Input", "Difference", "CpM", "WpM", "Score", "F6");
+	for (int i = 0; i < (3 * (call_maxlen + 2) + 30); i++) {
+    	s_pos += sprintf(summary + s_pos, "-");
+	}
+    s_pos += sprintf(summary + s_pos, "\r\n");
 }
 
 static void close_summary_file () {
@@ -1091,7 +1107,7 @@ static void close_summary_file () {
         return;
     }
 
-    s_pos += sprintf(summary + s_pos, "--------------------------------------------------------------------\r\n");
+    s_pos += sprintf(summary + s_pos, "\r\n");
     s_pos += sprintf(summary + s_pos, "Score: %d, Max. speed (CpM/WpM): %d / %d\r\nSaved at: %s\r\n", score, maxspeed, maxspeed/5, time_fmt);
 
     snprintf(filename, PATH_MAX, "%s/%s-%s.txt", sumfilepath, mycall, time_fmt);
@@ -1139,8 +1155,18 @@ static int show_error (char * realcall, char * wrongcall) {
 	int y = errornr;
 	int i;
 
+	// when call_maxlen <= CALL_MAX/2, we are showing the errors in two columns, otherwise just one.
+	int max_nr_err = call_maxlen <= CALL_MAX/2 ? 30 : 15;   
+	int max_disp_len = call_maxlen <= CALL_MAX/2 ? CALL_MAX/2 : CALL_MAX;
+	char fmt[80];
+
+	// cut entered call if it's longer than what we can display
+	if (strlen(wrongcall) > max_disp_len) {
+		wrongcall[max_disp_len] = '\0';
+	}
+
 	/* Screen is full of errors. Remove them and start at the beginning */
-	if (errornr == 31) {	
+	if (errornr >= max_nr_err) {	
 		for (i=1;i<16;i++) {
 			mvwaddstr(mid_w,i,2,"                                        "
 							 "          ");
@@ -1148,12 +1174,13 @@ static int show_error (char * realcall, char * wrongcall) {
 		errornr = y = 1;
 	}
 
-	/* Move to second column after 15 errors */	
-	if (errornr > 15) {
+	/* Move to second column after 15 errors if applicable */	
+	if (max_nr_err == 30 && errornr > 15) {
 		x=30; y = (errornr % 16)+1;
 	}
 
-	mvwprintw(mid_w,y,x, "%-13s %-13s", realcall, wrongcall);
+    snprintf(fmt, 20, "%%-%ds %%-%ds", call_maxlen <= CALL_MAX/2 ? CALL_MAX/2 : CALL_MAX, call_maxlen <= CALL_MAX/2 ? CALL_MAX/2 : CALL_MAX);
+	mvwprintw(mid_w,y,x, fmt, realcall, wrongcall);
 	wrefresh(mid_w);		
 	return 0;
 }
@@ -2023,8 +2050,7 @@ static int statistics () {
 int read_callbase () {
 	FILE *fh;
 	int c,i;
-	int maxlen=0;
-	char tmp[80] = "";
+	char tmp[CALL_MAX + 2] = "";
 	int nr=0;
 
 	if ((fh = fopen(cbfilename, "r")) == NULL) {
@@ -2035,20 +2061,27 @@ int read_callbase () {
 	}
 
 	/* count the lines/calls and lengths */
+	call_maxlen = 0;
 	i=0;
 	while ((c = getc(fh)) != EOF) {
 		i++;
 		if (c == '\n') {
 			nr++;
-			maxlen = (i > maxlen) ? i : maxlen;
+			call_maxlen = (i > call_maxlen) ? i : call_maxlen;
 			i = 0;
 		}
 	}
-	maxlen++;
+	call_maxlen--; /* remove \n */
 
 	if (!nr) {
 		endwin();
 		printf("\nError: Callsign database empty, no calls read. Exiting.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	if (call_maxlen > CALL_MAX) {
+		endwin();
+		printf("\nError: Callsign database contains a line with %d letters, which is longer than CALL_MAX (%d) . Exiting.\n", call_maxlen, CALL_MAX);
 		exit(EXIT_FAILURE);
 	}
 
@@ -2070,8 +2103,8 @@ int read_callbase () {
 	
 	/* Allocate each element of the array with size maxlen */
 	for (c=0; c < nr; c++) {
-		if ((calls[c] = (char *) malloc (maxlen * sizeof(char))) == NULL) {
-			fprintf(stderr, "Error: Couldn't allocate %d bytes!\n", maxlen);
+		if ((calls[c] = (char *) malloc ((call_maxlen + 2) * sizeof(char))) == NULL) {
+			fprintf(stderr, "Error: Couldn't allocate %d bytes!\n", call_maxlen + 2);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -2079,7 +2112,7 @@ int read_callbase () {
 	rewind(fh);
 	
 	nr=0;
-	while (fgets(tmp,maxlen,fh) != NULL) {
+	while (fgets(tmp,call_maxlen+2,fh) != NULL) {
 		for (i = 0; i < strlen(tmp); i++) {
 				tmp[i] = toupper(tmp[i]);
 		}
@@ -2223,7 +2256,7 @@ void select_callbase () {
 
 
 void help () {
-		printf("qrq v%s  (c) 2006-2019 Fabian Kurz, DJ1YFK. "
+		printf("qrq v%s  (c) 2006-2021 Fabian Kurz, DJ5CW. "
 					"http://fkurz.net/ham/qrq.html\n", VERSION);
 		printf("High speed morse telegraphy trainer, similar to"
 					" RUFZ.\n\n");

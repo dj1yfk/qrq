@@ -6,6 +6,7 @@
 	  attempts.
 	* Add KG7IEL's patches from (Debian #997190)
 	* Add word lists from Tom Mozdzen
+	* Handle long words better (up to 28 characters - tnx SQ6JNX)
 
 0.3.3 / 2019-05-09   Fabian Kurz <fabian@fkurz.net>
 	* Generate summary files for each attempt (idea by K0MP)

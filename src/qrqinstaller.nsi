@@ -9,7 +9,7 @@ Icon "qrq.ico"
 InstallDir "$PROGRAMFILES\qrq"
 DirText "Setup will install qrq _VERSION_ in the following folder. To install in a different folder, click Browse and select another folder. Click Install to start the installation. Note that if qrq is already installed the old installation is overwritten, except for the files 'qrqrc' and 'toplist'."
  
-LicenseText "License of High Speed CW trainer 'qrq' (https://fkurz.net/ham/qrq.html) by Fabian Kurz, DJ1YFK"
+LicenseText "License of High Speed CW trainer 'qrq' (https://fkurz.net/ham/qrq.html) by Fabian Kurz, DJ5CW"
 LicenseData "COPYING"
  
 Page license

@@ -1,14 +1,14 @@
-QRQ - yet another CW trainer - Version 0.3.4
+QRQ - yet another CW trainer - Version 0.3.5
 
-Project website: http://fkurz.net/ham/qrq.html
+Project website: https://fkurz.net/ham/qrq.html
 -----------------------------------------------------------------------------
 
 qrq is an open source Morse telegraphy trainer, similar to the classic DOS
 version of Rufz by DL4MM, for Linux, Unix, OS X and Windows. 
 
-It's not intended for learning telegraphy (have a look at radio.linux.org.au
-for CW learning software or check out http://lcwo.net/), but to improve the
-ability to copy callsigns at high speeds, as needed for example for Contesting. 
+It's not intended for learning telegraphy (check out https://lcwo.net/ for
+that!), but to improve the ability to copy callsigns (or words) at high
+speeds, as needed for example in ham radio contesting. 
 
 -----------------------------------------------------------------------------
 
@@ -37,7 +37,7 @@ can be set by the user.
 There is a simple toplist function in qrq which makes it possible for the user
 to keep track of his training success or to compare scores with others.
 
-You can submit your highscores via e-Mail to fabian@fkurz.net and they will
+You can submit your highscores via email to fabian@fkurz.net and they will
 appear on the toplist published at https://fkurz.net/ham/qrqtop.html.
 The toplist is not protected by any kind of checksum, it's based on honesty.
 
@@ -75,4 +75,4 @@ Contact, Feedback
 
 I am always interested in any kind of feedback concerning qrq.
 If you have any suggestions, questions, feature-requests etc., don't hesitate
-a minute and contact the author: Fabian Kurz, DJ1YFK <fabian@fkurz.net>.
+a minute and contact the author: Fabian Kurz, DJ5CW <fabian@fkurz.net>.
