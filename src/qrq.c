@@ -163,6 +163,8 @@ static int clear_parameter_display();
 static void update_parameter_dialog();
 static void start_summary_file();
 static void close_summary_file();
+static int validchar(char c);
+
 
 #ifdef WIN_THREADS
 HANDLE cwthread;
@@ -864,8 +866,7 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals, int len
 		if (c == '\n' && sending_complete)
 			break;
 
-		if (((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0'  && c <= '9')
-					 || c == '/' || c == ' ' || c == '-') && strlen(line) <= len) {
+		if (validchar(c) && strlen(line) <= len) {
 
             // accept - as / for German keyboards (and other layouts where /
             // requires pressing shift)
@@ -1546,6 +1547,15 @@ static void *morse(void *arg) {
 		}
         else if (c == ' ') {        /* space */
             code = " ";
+        }
+        else if (c == '.') {
+            code = ".-.-.-";
+		}
+        else if (c == ',') {
+            code = "--..--";
+		}
+        else if (c == '=') {
+            code = "-...-";
         }
 		else {						/* not supposed to happen! */
 			code = "..--..";
@@ -2253,7 +2263,9 @@ void select_callbase () {
 
 }
 
-
+int validchar (char c) {
+    return ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0'  && c <= '9') || c == '/' || c == ' ' || c == '-' || c == '.' || c == ',' || c == '=' || c == '?');
+}
 
 void help () {
 		printf("qrq v%s  (c) 2006-2021 Fabian Kurz, DJ5CW. "

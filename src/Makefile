@@ -93,10 +93,11 @@ install: qrq
 	${INSTALL} -d -v							qrq.app/Contents/Resources/share/man/man1/
 	${INSTALL}    -m 0755 qrq					qrq.app/Contents/MacOS/
 	${INSTALL}    -m 0755 qrqscore				qrq.app/Contents/MacOS/
-	${INSTALL}    -m 0644 qrq.1				qrq.app/Contents/Resources/share/man/man1/
-	${INSTALL}    -m 0644 callbase.qcb				qrq.app/Contents/Resources/share/qrq/
-	${INSTALL}    -m 0644 english.qcb				qrq.app/Contents/Resources/share/qrq/
-	${INSTALL}    -m 0644 qrqrc				qrq.app/Contents/Resources/share/qrq/
+	${INSTALL}    -m 0644 qrq.1					qrq.app/Contents/Resources/share/man/man1/
+	${INSTALL}    -m 0644 callbase.qcb			qrq.app/Contents/Resources/share/qrq/
+	${INSTALL}    -m 0644 english.qcb			qrq.app/Contents/Resources/share/qrq/
+	${INSTALL}    -m 0644 cwops.qcb				qrq.app/Contents/Resources/share/qrq/
+	${INSTALL}    -m 0644 qrqrc					qrq.app/Contents/Resources/share/qrq/
 	${INSTALL}    -m 0644 toplist				qrq.app/Contents/Resources/share/qrq/
 	${INSTALL}    -m 0644 OSXExtras/qrq.icns	qrq.app/Contents/Resources/
 	${INSTALL}    -m 0755 OSXExtras/qrqsh		qrq.app/Contents/MacOS/
@@ -116,6 +117,7 @@ install: qrq
 	${INSTALL}    -m 0644 qrq.1           $(DESTDIR)/share/man/man1/
 	${INSTALL}    -m 0644 callbase.qcb    $(DESTDIR)/share/qrq/
 	${INSTALL}    -m 0644 english.qcb     $(DESTDIR)/share/qrq/
+	${INSTALL}    -m 0644 cwops.qcb       $(DESTDIR)/share/qrq/
 	${INSTALL}    -m 0644 qrqrc           $(DESTDIR)/share/qrq/
 	${INSTALL}    -m 0644 toplist         $(DESTDIR)/share/qrq/
 
@@ -164,7 +166,7 @@ dist:
 	mkdir qrq-$(VERSION)
 	cp qrq.png qrqscore qrq.c qrqrc callbase.qcb toplist \
 		../AUTHORS ../ChangeLog README ../COPYING qrq.1 Makefile qrqinstaller.nsi \
-		english.qcb qrq.ico qrq.rc \
+		english.qcb cwops.qcb qrq.ico qrq.rc \
 		qrq-$(VERSION)
 	cp coreaudio.c coreaudio.h oss.c oss.h \
 		qrq-$(VERSION)

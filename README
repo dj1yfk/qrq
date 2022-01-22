@@ -1,4 +1,4 @@
-QRQ - yet another CW trainer - Version 0.3.5
+QRQ - yet another CW trainer - Version 0.3.4
 
 Project website: https://fkurz.net/ham/qrq.html
 -----------------------------------------------------------------------------
@@ -54,6 +54,12 @@ Options can be changed in the config file qrqrc or via the options menu (F5).
 As of version 0.2.0, some additional training modes are available, which allow
 e.g. unlimited usage of F6 (call repetition) and attempts that are longer than
 the normal 50 calls.
+
+The standard distribution contains three databases: callbase.qcb (many
+callsigns, taken from real logs), english.qcb (English words), and cwops.qcb
+(CWops members with name and number, training for the CWT mini contest).
+Additional user contributed QCB files can be found at:
+https://git.fkurz.net/dj1yfk/qrq/src/branch/master/extras
 
 A small Perl script, qrqscore, to synchronize the online-toplist
 (http://fkurz.net/ham/qrqtop.php) with your local toplist is included as of
