@@ -427,7 +427,7 @@ while (status == 1) {
 	/****** send 50 or unlimited calls, ask for input, score ******/
     start_summary_file();
 	
-	for (callnr=1; callnr < (unlimitedattempt ? nrofcalls : 51); callnr++) {
+    for (callnr=1; callnr <= (unlimitedattempt ? nrofcalls : 50); callnr++) {
 		/* Make sure to wait for the cwthread of the previous callsign, if
 		 * necessary. */
 #ifdef WIN_THREADS
