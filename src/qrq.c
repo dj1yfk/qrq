@@ -1,7 +1,7 @@
 /* 
 qrq - High speed morse trainer, similar to the DOS classic "Rufz"
 
-Copyright (C) 2006-2021  Fabian Kurz and contributors
+Copyright (C) 2006-2022  Fabian Kurz and contributors
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -163,7 +163,7 @@ static int clear_parameter_display();
 static void update_parameter_dialog();
 static void start_summary_file();
 static void close_summary_file();
-static int validchar(char c);
+static int validchar(int c);
 
 
 #ifdef WIN_THREADS
@@ -2263,7 +2263,7 @@ void select_callbase () {
 
 }
 
-int validchar (char c) {
+int validchar (int c) {
     return ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0'  && c <= '9') || c == '/' || c == ' ' || c == '-' || c == '.' || c == ',' || c == '=' || c == '?');
 }
 
