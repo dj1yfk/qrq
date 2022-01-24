@@ -321,7 +321,7 @@ while (status == 1) {
 	mvwaddstr(top_w,1,1, "QRQ v");
 	mvwaddstr(top_w,1,6, VERSION);
 	wattroff(top_w, A_BOLD);
-	mvwaddstr(top_w,1,11, " by Fabian Kurz, DJ5CW");
+	mvwaddstr(top_w,1,11, " by Fabian Kurz, DJ5CW           ");
 	mvwaddstr(top_w,2,1, "Homepage and Toplist: https://fkurz.net/ham/qrq.html"
 					"     ");
 
