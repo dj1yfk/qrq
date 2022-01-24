@@ -1,4 +1,4 @@
-0.3.5 / 2022-00-00   Fabian Kurz <fabian@fkurz.net>
+0.3.5 / 2022-01-24   Fabian Kurz <fabian@fkurz.net>
 	* Fix handling of PgUp/PgDown (tnx W4MSL)
 	* In unlimited attempt, actually play *all* items from
 	  callbase (not -1) (tnx W4MSL)
