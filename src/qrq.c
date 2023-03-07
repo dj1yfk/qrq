@@ -108,6 +108,7 @@ static int initialspeed=200;			/* initial speed. to be read from file*/
 static int mincharspeed=0;				/* min. char. speed, below: farnsworth*/
 static int speed=200;					/* current speed in cpm */
 static int maxspeed=0;
+static int speedstep=10;				/* speed increase/decrease after attempts */
 static int freq=800;					/* current cw sidetone freq */
 static int errornr=0;					/* number of errors in attempt */
 static int p=0;							/* position of cursor, relative to x */
@@ -334,7 +335,8 @@ while (status == 1) {
 	mvwaddstr(mid_w,3,2, "from a database will be sent. After each callsign,");
 	mvwaddstr(mid_w,4,2, "enter what you have heard. If you copied correctly,");
 	mvwaddstr(mid_w,5,2, "full points are credited and the speed increases by");
-	mvwaddstr(mid_w,6,2, "2 WpM -- otherwise the speed decreases and only a ");
+	mvwprintw(mid_w,6,2, "%d LpM -- otherwise the speed decreases and only a ",
+			speedstep);
 	mvwaddstr(mid_w,7,2, "fraction of the points, depending on the number of");
 	mvwaddstr(mid_w,8,2, "errors is credited.");
 	mvwaddstr(mid_w,10,2, "F6 repeats a callsign once, F10 quits.");
@@ -662,8 +664,16 @@ while ((j = getch()) != 0) {
 				mincharspeed -= 10;
 			}
 			break;
+		case KEY_PPAGE:
+			speedstep += 2;
+			break;
+		case KEY_NPAGE:
+			if (speedstep >= 4) {
+				speedstep -= 2;
+			}
+			break;
 		case 'c':
-			readline(conf_w, 5, 25, mycall, CAPITALS_ON, 8);
+			readline(conf_w, 6, 25, mycall, CAPITALS_ON, 8);
 			if (strlen(mycall) == 0) {
 				strcpy(mycall, "NOCALL");
 			}
@@ -766,26 +776,28 @@ void update_parameter_dialog () {
 					"    up/down", initialspeed, initialspeed/5);
 	mvwprintw(conf_w,3,2, "Min. character Speed:  %3d CpM / %3d WpM" 
 					"    left/right", mincharspeed, mincharspeed/5);
-	mvwprintw(conf_w,4,2, "CW rise/falltime (ms): %1.1f           " 
+	mvwprintw(conf_w,4,2, "Speed stepping:        %3d CpM          " 
+					"    PgUp/PgDn", speedstep);
+	mvwprintw(conf_w,5,2, "CW rise/falltime (ms): %1.1f           " 
 					"       +/-", edge);
-	mvwprintw(conf_w,5,2, "Callsign:              %-14s" 
+	mvwprintw(conf_w,6,2, "Callsign:              %-14s" 
 					"       c", mycall);
-	mvwprintw(conf_w,6,2, "CW pitch (0 = random): %-4d"
+	mvwprintw(conf_w,7,2, "CW pitch (0 = random): %-4d"
 					"                 k/l or 0", (constanttone)?ctonefreq : 0);
-	mvwprintw(conf_w,7,2, "CW waveform:           %-8s"
+	mvwprintw(conf_w,8,2, "CW waveform:           %-8s"
 					"             w", wavename);
-	mvwprintw(conf_w,8,2, "Allow unlimited F6*:   %-3s"
+	mvwprintw(conf_w,9,2, "Allow unlimited F6*:   %-3s"
 					"                  f", (f6 ? "yes" : "no"));
-	mvwprintw(conf_w,9,2, "Fixed CW speed*:       %-3s"
+	mvwprintw(conf_w,10,2, "Fixed CW speed*:       %-3s"
 					"                  s", (fixspeed ? "yes" : "no"));
-	mvwprintw(conf_w,10,2, "Unlimited attempt*:    %-3s"
+	mvwprintw(conf_w,11,2, "Unlimited attempt*:    %-3s"
 					"                  u", (unlimitedattempt ? "yes" : "no"));
 	if (!callnr) {
-		mvwprintw(conf_w,11,2, "Callsign database:     %-15s"
+		mvwprintw(conf_w,12,2, "Callsign database:     %-15s"
 					"      d (%ld)", basename(cbfilename),nrofcalls);
 	}
 #ifdef OSS
-	mvwprintw(conf_w,12,2, "DSP device:            %-15s"
+	mvwprintw(conf_w,13,2, "DSP device:            %-15s"
 					"      e", dspdevice);
 #endif
 	mvwprintw(conf_w,14,2, "Press");
@@ -1046,7 +1058,7 @@ static int calc_score (char * realcall, char * input, int spd, char * output, in
 		output[0]='-';						/* * == OK, no mistake */
 		output[1]='\0';	
 		if (speed > maxspeed) {maxspeed = speed;}
-		if (!fixspeed) speed += 10;
+		if (!fixspeed) speed += speedstep;
 		if (attemptvalid) {
             score =  2*x*spd;						/* score */
 		}
@@ -1064,7 +1076,11 @@ static int calc_score (char * realcall, char * input, int spd, char * output, in
 			}
 		}
 		output[i]='\0';
-		if ((speed > 29) && !fixspeed) {speed -= 10;}
+		if ((speed > 20) && !fixspeed) {
+			speed -= speedstep;
+			if (speed < 20)
+				speed = 20;
+		}
 
 		/* score when 1-3 mistakes was made */
 		if ((m < 4) && attemptvalid) {
@@ -1349,6 +1365,20 @@ static int read_config () {
 				mincharspeed = i;
 				printw("  line  %2d: min.char.speed: %d\n", line, mincharspeed);
 			} /* else ignore */
+		}
+		else if (tmp == strstr(tmp,"speedstep=")) {
+			while (isgraph(tmp[i] = tmp[strlen("speedstep=")+i])) {
+				i++;
+			}
+			tmp[i]='\0';
+			if ((i = atoi(tmp)) > 0) {
+				speedstep = i;
+				printw("  line  %2d: speed step: %d\n", line, speedstep);
+			}
+			else {
+				printw("  line  %2d: speed step: >%s< invalid. "
+								"Using default %d.\n", line, tmp, speedstep);
+			}
 		}
 		else if (tmp == strstr(tmp,"dspdevice=")) {
 			while (isgraph(tmp[i] = tmp[10+i])) {
@@ -1665,7 +1695,7 @@ static int tonegen (int freq, int len, int waveform) {
 static int save_config () {
 	FILE *fh;
 	char tmp[4096]="";
-	char confopts[12][80] = {
+	char confopts[13][80] = {
 		"\ncallsign=", 
 		"\ncallbase=",
 		"\ndspdevice=", 
@@ -1677,7 +1707,8 @@ static int save_config () {
 		"\nfixspeed=", 
 		"\nunlimitedattempt=", 
 		"\nf6=", 
-		"\nrisetime=" 
+		"\nrisetime=", 
+		"\nspeedstep=" 
 	};
 	char *conf1;
 	char *conf2;
@@ -1711,7 +1742,7 @@ static int save_config () {
 	 * */
 
 	//endwin();
-	for (i = 0; i < 12; i++) {
+	for (i = 0; i < 13; i++) {
 		/* assemble new string for this conf option*/
 		switch (i) {
 			case 0:
@@ -1749,6 +1780,9 @@ static int save_config () {
 				break;
 			case 11:
 				sprintf(tmp, "%s%f ", confopts[i], edge);
+				break;
+			case 12:
+				sprintf(tmp, "%s%d ", confopts[i], speedstep);
 				break;
 		}	
 
