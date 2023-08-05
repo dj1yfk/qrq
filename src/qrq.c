@@ -109,6 +109,7 @@ static int mincharspeed=0;				/* min. char. speed, below: farnsworth*/
 static int speed=200;					/* current speed in cpm */
 static int maxspeed=0;
 static int speedstep=10;				/* speed increase/decrease after attempts */
+static int stoponerror=0;               /* after an error, stop and wait for 2nd enter */
 static int freq=800;					/* current cw sidetone freq */
 static int errornr=0;					/* number of errors in attempt */
 static int p=0;							/* position of cursor, relative to x */
@@ -539,6 +540,8 @@ while (status == 1) {
 		update_score();
 		if (strcmp(tmp, "-")) {			/* made an error */
 				show_error(calls[i], tmp);
+                if (stoponerror)
+                    getch();
 		}
 		input[0]='\0';
 		strncpy(previouscall, calls[i], CALL_MAX);
@@ -645,6 +648,9 @@ while ((j = getch()) != 0) {
 		case 's':
 				fixspeed = (fixspeed ? 0 : 1);
 			break;
+		case 't':
+				stoponerror = (stoponerror ? 0 : 1);
+			break;
 		case 'u':
 				unlimitedattempt = (unlimitedattempt ? 0 : 1);
 			break;
@@ -699,7 +705,7 @@ while ((j = getch()) != 0) {
 			break;
 		case KEY_F(2):
 			save_config();	
-			mvwprintw(conf_w,15,39, "Config saved!");
+			mvwprintw(conf_w,15,23, "  Config saved!");
 			wrefresh(conf_w);
 #ifdef WIN32
 			Sleep(1000);
@@ -769,8 +775,7 @@ void update_parameter_dialog () {
 	curs_set(0);
 	wattron(conf_w,A_BOLD);
 	mvwaddstr(conf_w,1,1, "Configuration:          Value                Change");
-	mvwprintw(conf_w,14,2, "      F6                    F10            ");
-	mvwprintw(conf_w,15,2, "      F2");
+	mvwprintw(conf_w,15,2, "F6                   F2                F10");
 	wattroff(conf_w, A_BOLD);
 	mvwprintw(conf_w,2,2, "Initial Speed:         %3d CpM / %3d WpM" 
 					"    up/down", initialspeed, initialspeed/5);
@@ -796,15 +801,15 @@ void update_parameter_dialog () {
 		mvwprintw(conf_w,12,2, "Callsign database:     %-15s"
 					"      d (%ld)", basename(cbfilename),nrofcalls);
 	}
+	mvwprintw(conf_w,13,2, "Stop on error:         %-3s"
+                    "                  t", (stoponerror ? "yes" : "no"));
 #ifdef OSS
-	mvwprintw(conf_w,13,2, "DSP device:            %-15s"
+	mvwprintw(conf_w,14,2, "DSP device:            %-15s"
 					"      e", dspdevice);
 #endif
-	mvwprintw(conf_w,14,2, "Press");
-	mvwprintw(conf_w,14,11, "to play sample CW,");
-	mvwprintw(conf_w,14,34, "to go back.");
-	mvwprintw(conf_w,15,2, "Press");
-	mvwprintw(conf_w,15,11, "to save config permanently.");
+	mvwprintw(conf_w,15,4, ": Play CW sample");
+	mvwprintw(conf_w,15,25, ": Save config");
+	mvwprintw(conf_w,15,44, ": Exit");
 	mvwprintw(inf_w,1,1, "          * Makes scores ineligible for toplist");
 	wrefresh(conf_w);
 	wrefresh(inf_w);
@@ -904,8 +909,7 @@ static int readline(WINDOW *win, int y, int x, char *line, int capitals, int len
 				line[i] =  line[i+1];
 			}
 			p--;
-		}
-		else if (c == KEY_DC && strlen(line) != 0) {		/* DELETE */ 
+
 			p++;
 			for (i=p-1;i < strlen(line); i++) {
 				line[i] =  line[i+1];
@@ -1462,6 +1466,13 @@ static int read_config () {
 			}
 			printw("  line  %2d: fixed speed:  %s\n", line, (fixspeed ? "yes":"no"));
         }
+		else if (tmp == strstr(tmp, "stoponerror=")) {
+			stoponerror = 0;
+			if (tmp[12] == '1') {
+				stoponerror = 1;
+			}
+			printw("  line  %2d: stoponerror:  %s\n", line, (stoponerror ? "yes":"no"));
+        }
 		else if (tmp == strstr(tmp, "unlimitedattempt=")) {
 			unlimitedattempt=0;
 			if (tmp[17] == '1') {
@@ -1709,6 +1720,7 @@ static int save_config () {
 		"\nf6=", 
 		"\nrisetime=", 
 		"\nspeedstep=" 
+		"\nstoponerror=" 
 	};
 	char *conf1;
 	char *conf2;
@@ -1783,6 +1795,9 @@ static int save_config () {
 				break;
 			case 12:
 				sprintf(tmp, "%s%d ", confopts[i], speedstep);
+				break;
+			case 13:
+				sprintf(tmp, "%s%d ", confopts[i], stoponerror);
 				break;
 		}	
 

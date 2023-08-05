@@ -1,3 +1,7 @@
+0.3.6 / 2023-??-??   Fabian Kurz <fabian@fkurz.net>
+	* Configurable speed step after each call (tnx DF7CB)
+	* Option to stop after an error for review (tnx K7MOZ, EI6LA)
+
 0.3.5 / 2022-01-24   Fabian Kurz <fabian@fkurz.net>
 	* Fix handling of PgUp/PgDown (tnx W4MSL)
 	* In unlimited attempt, actually play *all* items from
