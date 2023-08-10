@@ -63,7 +63,7 @@ else ifeq ($(USE_PA), YES)
 		LDFLAGS:=$(LDFLAGS) -lpthread -lpulse-simple -lpulse -lncurses
 		OBJECTS=qrq.o pulseaudio.o
 else ifeq ($(USE_WIN32), YES)
-		CFLAGS:=$(CFLAGS) -D WIN32 -Iinclude -Iinclude/ncursesw
+		CFLAGS:=$(CFLAGS) -D WIN32 -Iinclude -Iinclude/ncursesw -DNCURSES_STATIC
 		LDFLAGS:=$(LDFLAGS) -lwinmm -lpthread
 		OBJECTS=qrq.o qrq.res lib/libncursesw.a
 else
