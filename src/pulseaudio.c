@@ -33,7 +33,7 @@ short int *buf = 0;
 int bufsize = 0;
 int bufpos = 0;
 
-void *open_dsp () {
+void *open_dsp (char *dummy) {
 	static int opened = 0;
 
 	/* with PA we only open the device once and then leave it
