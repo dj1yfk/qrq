@@ -1,7 +1,7 @@
 /* 
 qrq - High speed morse trainer, similar to the DOS classic "Rufz"
 
-Copyright (C) 2006-2022  Fabian Kurz and contributors
+Copyright (C) 2006-2025  Fabian Kurz and contributors
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -2317,7 +2317,7 @@ int validchar (int c) {
 }
 
 void help () {
-		printf("qrq v%s  (c) 2006-2021 Fabian Kurz, DJ5CW. "
+		printf("qrq v%s  (c) 2006-2025 Fabian Kurz, DJ5CW. "
 					"http://fkurz.net/ham/qrq.html\n", VERSION);
 		printf("High speed morse telegraphy trainer, similar to"
 					" RUFZ.\n\n");

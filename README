@@ -62,7 +62,7 @@ Additional user contributed QCB files can be found at:
 https://git.fkurz.net/dj1yfk/qrq/src/branch/master/extras
 
 A small Perl script, qrqscore, to synchronize the online-toplist
-(http://fkurz.net/ham/qrqtop.php) with your local toplist is included as of
+(https://fkurz.net/ham/qrqtop.php) with your local toplist is included as of
 version 0.1.2.
 
 -----------------------------------------------------------------------------
